@@ -11,6 +11,14 @@ const LEVEL: Record<Observability, { name: string; hint: string }> = {
     name: "Automatic: threads + queues",
     hint: "No Concurim imports; queue.Queue is observed while recording.",
   },
+  sync: {
+    name: "Automatic: + locks, semaphores, executors",
+    hint: "No Concurim imports; locks, semaphores and thread pools created by the program are observed.",
+  },
+  asyncio: {
+    name: "Automatic: + asyncio",
+    hint: "No Concurim imports; asyncio tasks, queues and locks are observed too.",
+  },
   threads: {
     name: "Automatic: threads only",
     hint: "No Concurim imports; only thread lifetimes are observed.",

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { getSession } from "./api/client";
 import type { SessionInfo } from "./api/types";
 import { Home } from "./home/Home";
 import type { Replay } from "./models/replay";
-import { Viewer } from "./Viewer";
+
+// The graph libraries load only when a recording is opened, not on Home.
+const Viewer = lazy(() => import("./Viewer").then((m) => ({ default: m.Viewer })));
 
 type Theme = "dark" | "light";
 
@@ -96,7 +98,11 @@ export function App() {
   }
   return (
     <LazyMotion features={domAnimation} strict>
-      <MotionConfig reducedMotion="user">{body}</MotionConfig>
+      <MotionConfig reducedMotion="user">
+        <Suspense fallback={<div className="splash">Loading viewer…</div>}>
+          {body}
+        </Suspense>
+      </MotionConfig>
     </LazyMotion>
   );
 }

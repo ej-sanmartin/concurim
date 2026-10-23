@@ -29,6 +29,9 @@ PY
 curl -sf http://127.0.0.1:8777/ | grep -q "<div id=\"root\">"
 ASSET=$(curl -sf http://127.0.0.1:8777/ | grep -o 'assets/[^"]*\.js' | head -1)
 curl -sf "http://127.0.0.1:8777/$ASSET" -o /dev/null
+# The viewer is a lazily loaded chunk: it must be served too.
+CHUNK=$(curl -sf "http://127.0.0.1:8777/$ASSET" | grep -o 'Viewer-[A-Za-z0-9_-]*\.js' | head -1)
+curl -sf "http://127.0.0.1:8777/assets/$CHUNK" -o /dev/null
 curl -sf "http://127.0.0.1:8777/api/source?path=threaded_pipeline.py" | grep -q "def producer"
 SAMPLE="$($VENV/bin/python -c 'from concurim.samples import sample_file;print(sample_file("threaded_pipeline.py"))')"
 "$CZ" record -o rec.concurim "$SAMPLE" 2>&1 | tail -3
@@ -73,5 +76,28 @@ assert st["state"] == "finished", st
 assert st["trace_ready"] is True, st
 assert json.load(u.urlopen(base + "api/session"))["has_trace"] is True
 print("run via home screen ok")
+code = (
+    "import asyncio, threading\n"
+    "lock = threading.Lock()\n"
+    "async def main():\n"
+    "    with lock:\n"
+    "        await asyncio.sleep(0)\n"
+    "asyncio.run(main())\n"
+)
+ws = call("api/workspaces", {"files": [
+    {"path": "main.py", "data": base64.b64encode(code.encode()).decode()}]})
+plan = call("api/runs/plan", {"workspace_id": ws["id"], "entry": "main.py",
+                              "auto": "asyncio"})
+call(f"api/runs/{plan['id']}/start", {})
+for _ in range(100):
+    st = json.load(u.urlopen(base + f"api/runs/{plan['id']}"))
+    if st["state"] != "running":
+        break
+    time.sleep(0.2)
+assert st["state"] == "finished", st
+replay = json.load(u.urlopen(base + "api/replay"))
+assert len(replay["entities"]["syncs"]) == 1, replay["entities"]
+assert replay["warnings"] == [], replay["warnings"]
+print("asyncio + lock run via the installed wheel ok")
 PY
 echo "wheel smoke test passed"

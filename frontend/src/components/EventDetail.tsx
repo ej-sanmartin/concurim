@@ -1,4 +1,4 @@
-import type { Replay, TraceEvent } from "../models/replay";
+import { actorOf, type Replay, type TraceEvent } from "../models/replay";
 
 interface Props {
   replay: Replay;
@@ -13,12 +13,15 @@ function fmtTime(ns: number): string {
 
 /** Raw fields of the current event; every value is rendered as text. */
 export function EventDetail({ replay, event, indexById, onSeek }: Props) {
-  const thread = event.thread_id ? replay.entities.threads[event.thread_id] : null;
-  const queue = event.resource_id ? replay.entities.queues[event.resource_id] : null;
+  const who = actorOf(event);
+  const thread = who ? replay.entities.threads[who] : null;
+  const queue = event.resource_id
+    ? replay.entities.queues[event.resource_id] ?? replay.entities.syncs[event.resource_id]
+    : null;
   const cause = event.caused_by ? indexById.get(event.caused_by) : undefined;
   const rows: [string, React.ReactNode][] = [
     ["time", fmtTime(event.timestamp_ns)],
-    ["thread", thread ? `${thread.name} (${thread.id})` : "–"],
+    [thread?.kind === "task" ? "task" : "thread", thread ? `${thread.name} (${thread.id})` : "–"],
     ["resource", queue ? `${queue.name} (${queue.id})` : (event.resource_id ?? "–")],
     ["object", event.object_id ?? "–"],
     ["operation", event.operation_id ?? "–"],

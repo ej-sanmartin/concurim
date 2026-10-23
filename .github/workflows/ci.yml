@@ -10,7 +10,16 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         python: ["3.13", "3.14"]
+        experimental: [false]
+        include:
+          # Free-threaded (no GIL) build: passes locally on macOS.
+          - { os: ubuntu-latest, python: "3.14t", experimental: false }
+          # Windows is not tested by the maintainers yet: failures here are
+          # reported but do not block, until they are understood.
+          - { os: windows-latest, python: "3.13", experimental: true }
+          - { os: windows-latest, python: "3.14", experimental: true }
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

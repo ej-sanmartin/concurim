@@ -36,6 +36,11 @@ def _thread_finished(n, ev, f):
             f" It still held {f['left_holding']} received item(s) "
             "without a matching task_done()."
         )
+    if f.get("left_locked"):
+        extra += (
+            f" It still held {', '.join(f['left_locked'])} "
+            "when it ended, so that lock stays locked."
+        )
     return ("Thread finished", f"{n.t} finished.{extra}", "ok")
 
 

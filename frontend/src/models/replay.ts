@@ -5,8 +5,10 @@ export type ThreadStatus =
   | "running"
   | "waiting"
   | "working"
+  | "suspended"
   | "finished"
-  | "failed";
+  | "failed"
+  | "cancelled";
 
 export interface Source {
   file: string;
@@ -22,6 +24,7 @@ export interface TraceEvent {
   sequence: number;
   process_id: number;
   thread_id?: string;
+  task_id?: string;
   resource_id?: string;
   object_id?: string;
   operation_id?: string;
@@ -30,14 +33,18 @@ export interface TraceEvent {
   metadata?: Record<string, string | number | boolean | null>;
 }
 
+/** The unit of execution an event belongs to: an asyncio task, else a thread. */
+export const actorOf = (e: TraceEvent): string | undefined => e.task_id ?? e.thread_id;
+
 export interface ThreadState {
   id: string;
   name: string;
   status: ThreadStatus;
   basis: "observed" | "inferred";
-  waiting_on: { queue: string; op: string } | null;
+  waiting_on: { resource: string; op: string } | null;
   holding: string[];
   work: string | null;
+  kind: "thread" | "task";
 }
 
 export interface BlockedOp {
@@ -55,10 +62,27 @@ export interface QueueState {
   /** True occupancy, even when ``items`` is truncated. */
   size: number;
   unfinished: number;
+  /** An executor is drawn as its pending-task queue. */
+  kind: "queue" | "executor";
+  workers: number;
+  running: number;
   shutdown: null | "graceful" | "immediate";
   blocked_puts: BlockedOp[];
   blocked_gets: BlockedOp[];
   joiners: string[];
+}
+
+/** A lock or semaphore. */
+export interface SyncState {
+  id: string;
+  name: string;
+  kind: "lock" | "rlock" | "semaphore";
+  capacity: number;
+  /** Permits available (semaphores). */
+  value: number;
+  /** One entry per hold, as actor ids. */
+  holders: string[];
+  waiters: BlockedOp[];
 }
 
 export type ObjectPhase =
@@ -83,6 +107,7 @@ export interface Frame {
   changes: {
     threads?: Record<string, ThreadState>;
     queues?: Record<string, QueueState>;
+    syncs?: Record<string, SyncState>;
     objects?: Record<string, ObjectState>;
   };
   explanation: {
@@ -95,7 +120,7 @@ export interface Frame {
 }
 
 export interface Span {
-  kind: "wait_put" | "wait_get" | "wait_join" | "work";
+  kind: "wait_put" | "wait_get" | "wait_join" | "wait_lock" | "hold" | "work";
   thread: string | null;
   resource: string | null;
   object: string | null;
@@ -113,8 +138,18 @@ export interface Replay {
   events: TraceEvent[];
   frames: Frame[];
   entities: {
-    threads: Record<string, { id: string; name: string; first: number; last: number }>;
-    queues: Record<string, { id: string; name: string; maxsize: number }>;
+    threads: Record<
+      string,
+      { id: string; name: string; kind: "thread" | "task"; first: number; last: number }
+    >;
+    queues: Record<
+      string,
+      { id: string; name: string; maxsize: number; kind: "queue" | "executor"; workers: number }
+    >;
+    syncs: Record<
+      string,
+      { id: string; name: string; kind: "lock" | "rlock" | "semaphore"; capacity: number }
+    >;
     objects: Record<
       string,
       {

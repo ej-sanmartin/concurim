@@ -2,7 +2,20 @@
 
 ## 0.1.0 (unreleased)
 
-First vertical slice, then the GUI-first milestone.
+First vertical slice, then the GUI-first milestone, then locks, pools and
+asyncio.
+
+- Observability levels `sync` (`threading.Lock/RLock/Semaphore/
+  BoundedSemaphore`, `ThreadPoolExecutor`) and `asyncio` (tasks, `Queue`,
+  `Lock`, `Semaphore`); managed `TracedLock`, `TracedRLock`,
+  `TracedSemaphore`, `TracedBoundedSemaphore`, `TracedThreadPoolExecutor`,
+  `TracedAsync*`. Replay explains who holds or waits for each lock; asyncio
+  tasks are drawn like threads; executors like queues of tasks.
+- Five more examples (lock contention, semaphore, thread pool, asyncio tasks,
+  asyncio queue); queue items now keep their identity at `queues`.
+- **Group workers** and `×N` folding of repeating log events.
+- Viewer split into two chunks (home ~316 kB, viewer ~223 kB).
+- CI: free-threaded 3.14t, and an experimental Windows job.
 
 - Home screen: drop a `.concurim` trace, `.py` file or project folder; bundled
   examples; explicit, reviewable "Record execution" with cancel and exit codes.

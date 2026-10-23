@@ -16,6 +16,9 @@
 - Traces are data: they are parsed with `json` and validated; size limits
   apply; nothing is unpickled or executed. Strings are rendered as text.
 - No telemetry, uploads, accounts, or network use.
+- Auto-instrumentation (`--auto sync|asyncio`) temporarily replaces
+  standard-library factories in the recorded process only, and restores them
+  on exit. It never touches the viewer or other processes.
 - Recording can expose information. Source embedding and payload previews are
   opt-in; previews cover only built-in primitives, are redacted by configured
   patterns *before* truncation, and never call `repr()` on user objects.

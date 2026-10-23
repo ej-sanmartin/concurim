@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import collections
 import queue
 import time
 from collections.abc import Callable
@@ -58,6 +59,33 @@ class _Envelope:
         self.object_id = object_id
         self.op = op
         self.put_event: str | None = None  # set when the put completes
+
+
+def _open(item: Any) -> Any:
+    return item.value if isinstance(item, _Envelope) else item
+
+
+class _Items(collections.deque):
+    """Queue storage that shows the original items, not envelopes.
+
+    The standard library only appends, pops from the left and takes the
+    length; everything else is for code that reads ``Queue.queue``.
+    """
+
+    def __iter__(self):
+        return (_open(x) for x in super().__iter__())
+
+    def __reversed__(self):
+        return (_open(x) for x in super().__reversed__())
+
+    def __getitem__(self, index):
+        return _open(super().__getitem__(index))
+
+    def __contains__(self, item):
+        return any(x == item for x in self)
+
+    def __repr__(self):
+        return f"deque({list(self)!r})"
 
 
 def _unwrap(raw: Any) -> QueueItem:

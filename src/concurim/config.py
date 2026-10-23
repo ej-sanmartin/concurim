@@ -5,6 +5,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+# Automatic instrumentation levels; each includes the ones before it.
+LEVELS = ("none", "threads", "queues", "sync", "asyncio")
+
 
 @dataclass(frozen=True, slots=True)
 class RecorderConfig:
@@ -22,10 +25,13 @@ class RecorderConfig:
             default because payloads may be sensitive.
         preview_max_chars: Maximum characters kept in a preview.
         redact_patterns: Regexes replaced by ``[redacted]`` in previews.
-        auto: Automatic instrumentation level while recording: ``"none"``
-            (only Concurim-managed objects), ``"threads"`` (every
-            ``threading.Thread``) or ``"queues"`` (threads plus
-            ``queue.Queue`` objects created during the run).
+        auto: Automatic instrumentation level while recording, each level
+            including the previous: ``"none"`` (only Concurim-managed
+            objects), ``"threads"`` (every ``threading.Thread``),
+            ``"queues"`` (``queue.Queue`` objects created during the run),
+            ``"sync"`` (locks, semaphores and ``ThreadPoolExecutor``
+            created by your code) or ``"asyncio"`` (tasks and asyncio
+            queues, locks and semaphores).
         source_root: Directory that recorded paths are shown relative to,
             and the only place source files may be embedded from. Defaults
             to the current directory when recording starts.
@@ -41,7 +47,7 @@ class RecorderConfig:
     auto: str = "none"
 
     def __post_init__(self) -> None:
-        if self.auto not in ("none", "threads", "queues"):
+        if self.auto not in LEVELS:
             raise ValueError(f"unknown auto level {self.auto!r}")
         if self.max_events < 1:
             raise ValueError("max_events must be positive")

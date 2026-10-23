@@ -62,6 +62,33 @@ Semantics worth knowing:
   any thread they wake records its events afterwards.
 - `put_nowait`/`get_nowait` appear as `block: false` on a single started event.
 
+### Lock and semaphore events
+
+`lock.created`, `lock.acquire.{started,blocked,completed,failed}`,
+`lock.released`, and the same family under `semaphore.` (including
+`BoundedSemaphore`, and asyncio's `Lock`/`Semaphore`). `created` carries
+`metadata.kind` (`lock`, `rlock` or `semaphore`), `value` and `name`;
+`released` carries `count` for semaphores.
+
+- `blocked` means the lock was unavailable at the first try.
+- `released` is emitted just *before* the real release, so the next holder's
+  `acquire.completed` always has a larger `sequence`.
+
+### Executor events
+
+`executor.created` (`max_workers`), `executor.submit` (carries `object_id` for
+the submitted task and `operation_id`), `executor.task.{started,finished,failed}`
+(on the worker thread), `executor.shutdown` (`wait`, `cancel_futures`). The
+replay draws an executor as a queue of pending tasks.
+
+### asyncio task events
+
+`task.created`, `task.step.{started,ended}` (one per run of the task by the
+event loop; `ended` has `done`), `task.finished`, `task.failed`,
+`task.cancelled`. These events carry `task_id` and `thread_id` (the loop's
+thread); the replay treats `task_id` (else `thread_id`) as the *actor*. Within
+one loop at most one task has an open step at any time.
+
 ### Other events
 
 `thread.registered` (first event seen from a thread), `thread.start.requested`,
@@ -71,7 +98,9 @@ Semantics worth knowing:
 ## Replay document
 
 `concurim.build_replay(trace)` (also served at `/api/replay`) returns the
-events plus one *frame* per event: changed entity states, an explanation
+events plus one *frame* per event: changed entity states (`threads` for
+threads and asyncio tasks, `queues` for queues and executors, `syncs` for
+locks and semaphores; a waiting actor has `waiting_on: {resource, op}`), an explanation
 `{title, text, tone, inferred[]}`, and an optional `motion`. Queue frames carry
 `size` (true occupancy) and at most the first 64 `items`. The same trace
 always produces the same document.

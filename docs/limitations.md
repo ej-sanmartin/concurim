@@ -2,14 +2,30 @@
 
 ## Observability levels
 
-- `none`: nothing is patched. `threads`: `threading.Thread` start and run are
-  recorded. `queues`: additionally `queue.Queue` is replaced by a recording
-  subclass while recording. All patches are reversed on exit.
-- At `queues`, items are wrapped in envelopes, so the viewer shows queue
-  operations but **not** item identity; `Queue.queue` shows envelopes to your
-  code. Use `TracedQueue` for identity and lineage.
-- Locks, semaphores, executors and asyncio are not instrumented yet; the home
-  screen lists their examples as planned.
+- Levels are cumulative: `none` (nothing patched) < `threads`
+  (`threading.Thread` start and run) < `queues` (`queue.Queue`) < `sync`
+  (`threading.Lock`, `RLock`, `Semaphore`, `BoundedSemaphore`,
+  `ThreadPoolExecutor`) < `asyncio` (tasks, `asyncio.Queue`, `Lock`,
+  `Semaphore`, `BoundedSemaphore`). Everything is patched only while
+  recording and reversed on exit.
+- Only objects **created directly by your code** are traced at `sync` and
+  `asyncio`. Locks that the standard library or a package creates for itself
+  (logging, `queue.Queue`'s own mutex, ...) are left alone.
+- At `queues`/`asyncio`, queue items have identity: the recorder stores items
+  in a transparent container, so `Queue.queue` and `qsize()` show your
+  original objects. Use `TracedQueue` for lineage (`derived_from`).
+- While recording at `sync`, `isinstance(x, threading.Lock)` is `False` for
+  locks the program creates (`threading.Lock` is a factory function, so
+  Concurim has to replace it). `type(x)` is a Concurim class there too.
+- Objects created **before** recording starts (module-level locks created at
+  import time, executors in an already imported library) are not traced.
+- asyncio: a task is recorded when it is created and each time the event loop
+  runs a step of it. What it awaits when that is not an instrumented object
+  (for example `asyncio.sleep`) is shown as "suspended (awaiting)". Tasks
+  started eagerly (`eager_task_factory`) lose their first step, and `uvloop`
+  is not supported.
+- `ThreadPoolExecutor`: submit, task start/finish/failure and shutdown are
+  recorded; `Future` callbacks, `cancel()` and `as_completed` ordering are not.
 - A program that uses nothing the chosen level can see records zero events.
 - One run at a time; a run cannot read stdin. Output is capped at 256 KiB.
 
@@ -23,16 +39,17 @@
 
 ## Not observed (never implied by the viewer)
 
-- `threading.Lock` and every other uninstrumented object. Plain `queue.Queue`
-  is seen only at the `queues` level (without item identity).
+- Anything the chosen level does not patch: plain `queue.Queue` is seen from
+  `queues` on, locks/semaphores/executors from `sync`, asyncio from
+  `asyncio`; the trace and the **Trace** tab say which applies.
 - CPU scheduling and **GIL ownership**. Python-level events do not give exact
   GIL timelines. The trace records interpreter facts only (version,
   free-threaded *build*, GIL *runtime* state) so a trace can be interpreted.
 - What a worker does between instrumented calls. Thread status "running (not
   blocked)" is therefore **inferred** and drawn with a dashed border.
 - Which item `task_done()` refers to, unless `object_id=` is passed.
-- `asyncio`, `multiprocessing`/`ProcessPoolExecutor`, `ThreadPoolExecutor`,
-  locks, semaphores, events, conditions (later milestones).
+- `multiprocessing`/`ProcessPoolExecutor`, `threading.Event`, `Condition`,
+  `Barrier`, `asyncio.Event`/`Condition` (later milestones).
 - `LifoQueue`/`PriorityQueue` (items are wrapped in an envelope, which would
   break priority comparison); `SimpleQueue` (no hooks).
 
@@ -59,11 +76,19 @@
 - The timeline draws one tick per event only up to 4,000 events; larger
   traces show spans and occupancy but not individual ticks.
 - Visual regression baselines are per platform (macOS baselines committed).
-- Only macOS has been tested; the frontend bundle is ~530 kB.
-- Not yet: collapsing worker groups or repetitive events, video export.
+- Tested on macOS (CPython 3.13, 3.14 and the free-threaded 3.14t build,
+  where the full suite passes with the GIL off). Linux, and Windows, run in
+  CI; the Windows job is marked experimental and its process-control code
+  (`viewer/procs.py`) has never been run by the maintainers.
+- The viewer is split in two JavaScript chunks: ~316 kB loaded on the home
+  screen and ~223 kB (React Flow) loaded when a recording is opened.
+- Large graphs: groups of 4 or more similar workers can be collapsed
+  (**Group workers**; automatic above 24 actors). Runs of repeating events in
+  the log fold into one row (`×N`).
+- Not yet: video export.
 
 ## Roadmap (not implemented)
 
-0.2 locks/semaphores/events/conditions + ThreadPoolExecutor · 0.3 asyncio
-· 0.4 process pools and a GIL/free-threaded comparison · 0.5 layout modes,
-lineage browser, video export (Manim stays optional).
+Events/conditions/barriers · process pools and a GIL/free-threaded
+comparison · layout modes, lineage browser, video export (Manim stays
+optional).

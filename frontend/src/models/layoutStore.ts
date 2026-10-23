@@ -12,7 +12,8 @@ export function layoutKey(replay: Replay): string {
   const names = (o: Record<string, { name: string }>) =>
     Object.values(o).map((e) => e.name).sort().join(",");
   const script = replay.metadata.program?.script ?? "trace";
-  return `${LAYOUT_PREFIX}${script}|${names(replay.entities.threads)}|${names(replay.entities.queues)}`;
+  const syncs = names(replay.entities.syncs ?? {});
+  return `${LAYOUT_PREFIX}${script}|${names(replay.entities.threads)}|${names(replay.entities.queues)}|${syncs}`;
 }
 
 function read<T>(key: string, fallback: T): T {
@@ -52,6 +53,11 @@ export function clearPositions(key: string): void {
     /* ignore */
   }
 }
+
+const GROUPED_KEY = "concurim-grouped";
+/** ``null`` until the user chooses; then their choice. */
+export const loadGrouped = (): boolean | null => read<boolean | null>(GROUPED_KEY, null);
+export const saveGrouped = (on: boolean) => write(GROUPED_KEY, on);
 
 export const loadHidden = (): string[] => read<string[]>(HIDDEN_KEY, []);
 export const saveHidden = (hidden: string[]) => write(HIDDEN_KEY, hidden);

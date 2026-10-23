@@ -14,11 +14,14 @@ ITEMS_HEAD = 64  # queued item ids kept per frame
 class ThreadState:
     id: str
     name: str
-    status: str = "running"  # running | waiting | working | finished | failed
+    # running | waiting | working | suspended | finished | failed | cancelled
+    status: str = "running"
     basis: str = "inferred"  # observed | inferred
+    # {"resource": id, "op": "put" | "get" | "join" | "acquire"}
     waiting_on: dict[str, str] | None = None
     holding: list[str] = field(default_factory=list)
     work: str | None = None
+    kind: str = "thread"  # thread | task (asyncio)
 
 
 @dataclass
@@ -29,9 +32,25 @@ class QueueState:
     items: deque[str] = field(default_factory=deque)
     unfinished: int = 0
     shutdown: str | None = None  # None | graceful | immediate
+    kind: str = "queue"  # queue | executor (a pool's pending-task queue)
+    workers: int = 0  # executor: max_workers
+    running: int = 0  # executor: tasks currently executing
     blocked_puts: list[dict[str, str | None]] = field(default_factory=list)
     blocked_gets: list[dict[str, str | None]] = field(default_factory=list)
     joiners: list[str] = field(default_factory=list)
+
+
+@dataclass
+class SyncState:
+    """A lock or semaphore."""
+
+    id: str
+    name: str
+    kind: str = "lock"  # lock | rlock | semaphore
+    capacity: int = 1  # permits at creation
+    value: int = 1  # permits available now (semaphores)
+    holders: list[str] = field(default_factory=list)  # one per hold
+    waiters: list[dict[str, str | None]] = field(default_factory=list)
 
 
 @dataclass
@@ -51,6 +70,7 @@ class Applied:
 
     threads: set[str] = field(default_factory=set)
     queues: set[str] = field(default_factory=set)
+    syncs: set[str] = field(default_factory=set)
     objects: set[str] = field(default_factory=set)
     motion: dict[str, str | None] | None = None
     facts: dict[str, Any] = field(default_factory=dict)
@@ -79,3 +99,11 @@ def snapshot(state: Any) -> dict[str, Any]:
     if isinstance(state, QueueState):
         out["items"] = list(islice(state.items, ITEMS_HEAD))
     return out
+
+
+def resume(th: ThreadState) -> None:
+    """Status after a wait ends: back inside work, or merely not blocked."""
+    if th.work:
+        th.status, th.basis = "working", "observed"
+    else:
+        th.status, th.basis = "running", "inferred"

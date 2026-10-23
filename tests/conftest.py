@@ -48,7 +48,7 @@ def wait_for(predicate, timeout=TIMEOUT):
 def world_after(replay, i=None):
     """Fold replay frames into the state after event ``i`` (default: last)."""
     i = len(replay["frames"]) - 1 if i is None else i
-    world = {"threads": {}, "queues": {}, "objects": {}}
+    world = {"threads": {}, "queues": {}, "syncs": {}, "objects": {}}
     for frame in replay["frames"][: i + 1]:
         for kind, entities in frame["changes"].items():
             world[kind].update(entities)

@@ -8,6 +8,8 @@ import sys
 import sysconfig
 from typing import Any
 
+from concurim.config import LEVELS
+
 
 def environment_info() -> dict[str, Any]:
     """Describe the interpreter.
@@ -36,8 +38,10 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
     Stored in every trace and shown by the viewer; ``not_observed`` is as
     important as ``observed``.
     """
+    rank = LEVELS.index(auto)
     observed = [
-        "Operations on concurim.TracedQueue, when the program uses it",
+        "Operations on concurim.TracedQueue, TracedLock, TracedSemaphore "
+        "and TracedThreadPoolExecutor, when the program uses them",
         "Lifecycle of concurim.TracedThread, when used",
         "Explicit concurim.work() spans and lineage annotations, when used",
     ]
@@ -45,14 +49,14 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         "CPU scheduling and GIL ownership (not derivable from these events)",
         "What a worker does between instrumented operations",
         "Child processes (multiprocessing is not instrumented yet)",
-        "threading locks, events, conditions, semaphores and executors",
+        "threading.Event and Condition operations",
     ]
-    if auto in ("threads", "queues"):
+    if rank >= 1:
         observed.append(
             "Start, finish and failure of every threading.Thread started "
             "during the run, including subclasses that override run()"
         )
-    if auto == "queues":
+    if rank >= 2:
         observed.append(
             "queue.Queue objects created during the run "
             "(put/get/task_done/join/shutdown)"
@@ -66,6 +70,33 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
             "Plain queue.Queue contents and operations (use the queue "
             "instrumentation level, or concurim.TracedQueue)"
         )
-    if auto == "none":
+    if rank >= 3:
+        observed.append(
+            "threading Lock, RLock, Semaphore, BoundedSemaphore and "
+            "ThreadPoolExecutor created by the program's own code"
+        )
+        not_observed.append(
+            "Locks and executors created inside libraries or the standard "
+            "library, and any created before recording"
+        )
+    else:
+        not_observed.append(
+            "Plain threading locks, semaphores and executors (use the sync "
+            "instrumentation level, or the Traced* classes)"
+        )
+    if rank >= 4:
+        observed.append(
+            "asyncio tasks (creation, each step the event loop runs, end) "
+            "and asyncio Queue, Lock, Semaphore and BoundedSemaphore "
+            "created during the run"
+        )
+        not_observed.append(
+            "What an asyncio task awaits when it is not one of the above "
+            "(sleep, I/O, futures), eagerly started tasks' first step, "
+            "and loops other than the standard one"
+        )
+    else:
+        not_observed.append("asyncio tasks and their primitives")
+    if rank == 0:
         not_observed.append("Plain threading.Thread objects")
     return {"observed": observed, "not_observed": not_observed}

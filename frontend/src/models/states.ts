@@ -2,6 +2,7 @@ import type {
   ObjectState,
   QueueState,
   Replay,
+  SyncState,
   ThreadState,
 } from "./replay";
 
@@ -9,10 +10,13 @@ import type {
 export interface WorldState {
   threads: Record<string, ThreadState>;
   queues: Record<string, QueueState>;
+  syncs: Record<string, SyncState>;
   objects: Record<string, ObjectState>;
 }
 
-export const EMPTY_WORLD: WorldState = { threads: {}, queues: {}, objects: {} };
+export const EMPTY_WORLD: WorldState = {
+  threads: {}, queues: {}, syncs: {}, objects: {},
+};
 
 /**
  * Fold frames into one world per event ("after event i"). Unchanged
@@ -24,10 +28,11 @@ export function buildStates(replay: Replay): WorldState[] {
   const states: WorldState[] = [];
   let world = EMPTY_WORLD;
   for (const frame of replay.frames) {
-    const { threads, queues, objects } = frame.changes;
+    const { threads, queues, syncs, objects } = frame.changes;
     world = {
       threads: threads ? { ...world.threads, ...threads } : world.threads,
       queues: queues ? { ...world.queues, ...queues } : world.queues,
+      syncs: syncs ? { ...world.syncs, ...syncs } : world.syncs,
       objects: objects ? { ...world.objects, ...objects } : world.objects,
     };
     states.push(world);

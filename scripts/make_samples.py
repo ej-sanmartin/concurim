@@ -4,7 +4,8 @@ Each sample is a REAL recording: the program next to it is run through
 ``concurim record`` exactly as a user would. Timing varies between runs, so
 regenerating changes the binary files; commit them only when intended.
 
-Usage: uv run python scripts/make_samples.py
+Usage: uv run python scripts/make_samples.py [sample-id ...]
+(no ids: regenerate every sample)
 """
 
 import subprocess
@@ -43,8 +44,10 @@ def record(entry: dict) -> None:
 
 
 def main() -> None:
+    wanted = set(sys.argv[1:])
     for entry in load_manifest()["samples"]:
-        record(entry)
+        if not wanted or entry["id"] in wanted:
+            record(entry)
 
 
 if __name__ == "__main__":

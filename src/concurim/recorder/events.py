@@ -49,6 +49,31 @@ class EventType:
     QUEUE_JOIN_FAILED = "queue.join.failed"
     QUEUE_SHUTDOWN_REQUESTED = "queue.shutdown.requested"
     QUEUE_ITEM_DISCARDED = "queue.item.discarded"
+    # Locks and semaphores share one acquire/release lifecycle.
+    LOCK_CREATED = "lock.created"
+    LOCK_ACQUIRE_STARTED = "lock.acquire.started"
+    LOCK_ACQUIRE_BLOCKED = "lock.acquire.blocked"
+    LOCK_ACQUIRE_COMPLETED = "lock.acquire.completed"
+    LOCK_ACQUIRE_FAILED = "lock.acquire.failed"
+    LOCK_RELEASED = "lock.released"
+    SEMAPHORE_CREATED = "semaphore.created"
+    SEMAPHORE_ACQUIRE_STARTED = "semaphore.acquire.started"
+    SEMAPHORE_ACQUIRE_BLOCKED = "semaphore.acquire.blocked"
+    SEMAPHORE_ACQUIRE_COMPLETED = "semaphore.acquire.completed"
+    SEMAPHORE_ACQUIRE_FAILED = "semaphore.acquire.failed"
+    SEMAPHORE_RELEASED = "semaphore.released"
+    EXECUTOR_CREATED = "executor.created"
+    EXECUTOR_SUBMIT = "executor.submit"
+    EXECUTOR_TASK_STARTED = "executor.task.started"
+    EXECUTOR_TASK_FINISHED = "executor.task.finished"
+    EXECUTOR_TASK_FAILED = "executor.task.failed"
+    EXECUTOR_SHUTDOWN = "executor.shutdown"
+    TASK_CREATED = "task.created"
+    TASK_STEP_STARTED = "task.step.started"
+    TASK_STEP_ENDED = "task.step.ended"
+    TASK_FINISHED = "task.finished"
+    TASK_FAILED = "task.failed"
+    TASK_CANCELLED = "task.cancelled"
 
 
 @dataclass(frozen=True, slots=True)
@@ -85,6 +110,11 @@ class Event:
     source: Source | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
     schema_version: int = SCHEMA_VERSION
+
+    @property
+    def actor(self) -> str | None:
+        """The unit of execution: an asyncio task, else the thread."""
+        return self.task_id or self.thread_id
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to a JSON-compatible dict, omitting empty fields."""

@@ -2,9 +2,10 @@
 
 **See how Python runs together.**
 
-Concurim records what your threads actually do with instrumented queues, then
-replays it as an interactive animation: which worker is running, which is
-blocked and why, where every item is, and what each event means.
+Concurim records what your threads and asyncio tasks actually do (queues,
+locks, semaphores, thread pools), then replays it as an interactive
+animation: which worker is running, which is blocked and why, who holds each
+lock, where every item is, and what each event means.
 
 ![Concurim viewer, dark theme](docs/images/viewer-dark.png)
 
@@ -14,9 +15,10 @@ Items 5 and 4 are queued (the front is on the right), consumers are working on
 3 and 2, and both producers are still inside a blocked `put` with items 6 and 7
 in hand.*
 
-> **Status: 0.1 (alpha).** Threaded producer-consumer pipelines with
-> `queue.Queue`, recorded automatically or with Concurim-managed primitives.
-> Locks, semaphores, executors, asyncio and process pools are planned. See
+> **Status: 0.1 (alpha).** Threads, `queue.Queue`, locks, semaphores,
+> `ThreadPoolExecutor` and asyncio (tasks, queues, locks), recorded
+> automatically or with Concurim-managed primitives. Events/conditions and
+> process pools are planned. See
 > [what is and is not observed](docs/limitations.md).
 
 ## Try it
@@ -46,11 +48,15 @@ On the home screen you can:
 | --- | --- | --- |
 | Basic (default) | Nothing patched | Only what you instrument |
 | Threads | Records `threading.Thread` start/run/finish | Thread lifecycles |
-| Threads + queues | Also swaps `queue.Queue` while recording (reversed on exit) | Queue operations; item *envelopes*, not identity |
-| Managed | You use `TracedQueue` / `TracedThread` | Full detail incl. item identity |
+| Threads + queues | Also swaps `queue.Queue` while recording (reversed on exit) | Queue operations and item identity |
+| + locks, semaphores, pools | Also swaps `threading.Lock/RLock/Semaphore/BoundedSemaphore` and `ThreadPoolExecutor` | Who holds or waits for each lock, permits, tasks flowing through a pool |
+| + asyncio | Also patches task creation/stepping and `asyncio.Queue/Lock/Semaphore` | Tasks as actors, awaits on queues and locks |
+| Managed | You use `TracedQueue` / `TracedLock` / `TracedThreadPoolExecutor` / ... | Full detail incl. lineage (`derived_from`) |
 
 Anything a level cannot see is shown as unavailable, never guessed. Choose with
-`concurim record --auto none|threads|queues`.
+`concurim record --auto none|threads|queues|sync|asyncio`. Only objects your
+own code creates are traced, and only while recording
+([details and caveats](docs/limitations.md)).
 
 ## Record your own program
 
@@ -112,11 +118,12 @@ To record a project, install Concurim into the project
 | Beginning / end | `Home` / `End` |
 | Speed | `[` `]` or the speed menu |
 | Seek | scrub bar, event number box, or click/drag the timeline |
-| Inspect | click a thread, the queue, or an item token |
+| Inspect | click a thread or task, a queue or pool, a lock, or an item token |
 | Drag / zoom | drag nodes, scroll to zoom; layout is remembered. **Fit** / **Reset layout** in the toolbar, `f` fits |
 | Views | **Animation** (understanding) or **Timeline** (dense, technical); same position, click an event then *Show in animation* |
 | Pacing | *Explain* slows down blocking events; *Real time* follows recorded gaps (optionally compressing idle time) |
 | Jump | next blocking event, next event for the selection |
+| Many workers | **Group workers** collapses groups of 4+ into one node (automatic above 24); repeating events in the **Log** fold into `×N` |
 | Source | **Source** tab (needs `--include-source`) highlights the event's line |
 
 The explanation card describes the current event and labels anything inferred.

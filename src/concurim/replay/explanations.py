@@ -11,7 +11,7 @@ from typing import Any
 
 from concurim.recorder.events import Event
 from concurim.recorder.events import EventType as E
-from concurim.replay import rules_queues, rules_threads
+from concurim.replay import rules_exec, rules_queues, rules_sync, rules_threads
 from concurim.replay.state import Applied, Reducer
 
 
@@ -37,10 +37,11 @@ class _Names:
 
     def __init__(self, ev: Event, red: Reducer) -> None:
         self.red = red
-        th = red.threads.get(ev.thread_id or "")
-        self.t = th.name if th else (ev.thread_id or "A thread")
-        q = red.queues.get(ev.resource_id or "")
-        self.q = q.name if q else (ev.resource_id or "the queue")
+        th = red.threads.get(ev.actor or "")
+        self.t = th.name if th else (ev.actor or "A thread")
+        rid = ev.resource_id or ""
+        res = red.queues.get(rid) or red.syncs.get(rid)
+        self.q = res.name if res else (ev.resource_id or "the resource")
         self.o = self.obj(ev.object_id)
 
     def obj(self, oid: str | None) -> str:
@@ -80,4 +81,26 @@ _RULES = {
     E.QUEUE_JOIN_FAILED: rules_queues._join_failed,
     E.QUEUE_SHUTDOWN_REQUESTED: rules_queues._shutdown,
     E.QUEUE_ITEM_DISCARDED: rules_queues._discarded,
+    E.EXECUTOR_CREATED: rules_exec._created,
+    E.EXECUTOR_SUBMIT: rules_exec._submit,
+    E.EXECUTOR_TASK_STARTED: rules_exec._started,
+    E.EXECUTOR_TASK_FINISHED: rules_exec._finished,
+    E.EXECUTOR_TASK_FAILED: rules_exec._failed,
+    E.EXECUTOR_SHUTDOWN: rules_exec._shutdown,
+    E.TASK_CREATED: rules_exec._task_created,
+    E.TASK_STEP_STARTED: rules_exec._step_started,
+    E.TASK_STEP_ENDED: rules_exec._step_ended,
+    E.TASK_FINISHED: rules_exec._task_finished,
+    E.TASK_FAILED: rules_exec._task_failed,
+    E.TASK_CANCELLED: rules_exec._task_cancelled,
 }
+for _kind in ("LOCK", "SEMAPHORE"):
+    for _name, _rule in (
+        ("CREATED", rules_sync._created),
+        ("ACQUIRE_STARTED", rules_sync._started),
+        ("ACQUIRE_BLOCKED", rules_sync._blocked),
+        ("ACQUIRE_COMPLETED", rules_sync._completed),
+        ("ACQUIRE_FAILED", rules_sync._failed),
+        ("RELEASED", rules_sync._released),
+    ):
+        _RULES[getattr(E, f"{_kind}_{_name}")] = _rule

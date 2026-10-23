@@ -65,13 +65,81 @@
       "source": "plain_pipeline.py",
       "trace": "plain-queues.concurim",
       "auto": "queues"
+    },
+    {
+      "id": "lock-contention",
+      "title": "Lock contention",
+      "observability": "sync",
+      "summary": "Four threads take turns inside one lock-protected critical section.",
+      "watch": [
+        "Only one thread holds the lock at a time",
+        "The others wait, and the timeline shows each wait and hold"
+      ],
+      "source": "lock_contention.py",
+      "trace": "lock-contention.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "semaphore",
+      "title": "Semaphore limit",
+      "observability": "sync",
+      "summary": "A semaphore with two permits lets only two of five threads work at once.",
+      "watch": [
+        "Permits drop to zero while two threads work",
+        "Waiting threads resume as permits are released"
+      ],
+      "source": "semaphore_limit.py",
+      "trace": "semaphore.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "thread-pool",
+      "title": "ThreadPoolExecutor",
+      "observability": "sync",
+      "summary": "Six tasks run on two pool workers; one task fails.",
+      "watch": [
+        "Tasks wait in the pool's queue, then move to a worker",
+        "The failing task is marked failed; the pool keeps going"
+      ],
+      "source": "thread_pool.py",
+      "trace": "thread-pool.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "asyncio-tasks",
+      "title": "Asyncio task switching",
+      "observability": "asyncio",
+      "summary": "Three tasks share one thread; the event loop switches between them.",
+      "watch": [
+        "Exactly one task runs at a time",
+        "A task that awaits is suspended, not blocked"
+      ],
+      "source": "asyncio_tasks.py",
+      "trace": "asyncio-tasks.concurim",
+      "auto": "asyncio"
+    },
+    {
+      "id": "asyncio-queue",
+      "title": "asyncio.Queue",
+      "observability": "asyncio",
+      "summary": "One producer task and two consumer tasks share a queue of two items.",
+      "watch": [
+        "A full queue suspends only the producer task",
+        "Consumers wait on an empty queue while others run"
+      ],
+      "source": "asyncio_queue.py",
+      "trace": "asyncio-queue.concurim",
+      "auto": "asyncio"
     }
   ],
   "planned": [
-    {"title": "Lock contention", "needs": "lock instrumentation"},
-    {"title": "ThreadPoolExecutor", "needs": "executor instrumentation"},
-    {"title": "Asyncio task switching", "needs": "asyncio support"},
-    {"title": "asyncio.Queue", "needs": "asyncio support"},
-    {"title": "Semaphores", "needs": "semaphore instrumentation"}
+    {
+      "title": "Events and conditions",
+      "needs": "event and condition instrumentation"
+    },
+    {
+      "title": "Process pools",
+      "needs": "multiprocessing support"
+    }
   ]
 }

@@ -14,19 +14,29 @@ from concurim.replay.models import (
     Applied,
     ObjectState,
     QueueState,
+    SyncState,
     ThreadState,
 )
+from concurim.replay.models import (
+    resume as _resume,
+)
+from concurim.replay.state_exec import EXEC_HANDLERS
+from concurim.replay.state_sync import SYNC_HANDLERS
 
 MAX_WARNINGS = 50
 MAX_HOLDING = 8  # received-but-unfinished items shown per thread
 
 
 class Reducer:
-    """Applies events in order, mutating ``threads``/``queues``/``objects``."""
+    """Applies events in order, mutating the entity dictionaries.
+
+    ``threads`` holds every *actor*: an OS thread or an asyncio task.
+    """
 
     def __init__(self) -> None:
         self.threads: dict[str, ThreadState] = {}
         self.queues: dict[str, QueueState] = {}
+        self.syncs: dict[str, SyncState] = {}
         self.objects: dict[str, ObjectState] = {}
         self.warnings: list[str] = []
 
@@ -37,15 +47,28 @@ class Reducer:
     # -- entity access ------------------------------------------------------
 
     def thread(self, ev: Event, app: Applied) -> ThreadState | None:
-        if ev.thread_id is None:
+        actor = ev.actor
+        if actor is None:
             return None
-        th = self.threads.get(ev.thread_id)
+        th = self.threads.get(actor)
         if th is None:
-            th = self.threads[ev.thread_id] = ThreadState(
-                ev.thread_id, str(ev.metadata.get("name", ev.thread_id))
+            th = self.threads[actor] = ThreadState(
+                actor,
+                str(ev.metadata.get("name", actor)),
+                kind="task" if ev.task_id else "thread",
             )
         app.threads.add(th.id)
         return th
+
+    def sync(self, ev: Event, app: Applied) -> SyncState:
+        """The lock or semaphore an event refers to."""
+        rid = ev.resource_id or "sync-?"
+        s = self.syncs.get(rid)
+        if s is None:
+            s = self.syncs[rid] = SyncState(rid, rid)
+            self.warn(f"{rid} used before its creation event (partial trace)")
+        app.syncs.add(rid)
+        return s
 
     def queue(self, ev: Event, app: Applied) -> QueueState:
         rid = ev.resource_id or "queue-?"
@@ -71,7 +94,7 @@ class Reducer:
         handler = _HANDLERS.get(ev.event_type)
         if handler is None:
             self.warn(f"unknown event type {ev.event_type!r} ignored")
-        elif th is not None or ev.thread_id is None:
+        elif th is not None or ev.actor is None:
             handler(self, ev, app, th)
         return app
 
@@ -88,6 +111,13 @@ class Reducer:
         th.status = "failed" if ev.event_type == E.THREAD_FAILED else "finished"
         th.basis, th.waiting_on, th.work = "observed", None, None
         app.facts["left_holding"] = len(th.holding)
+        held = [
+            s.name
+            for s in self.syncs.values()
+            if s.kind != "semaphore" and th.id in s.holders
+        ]
+        if held:
+            app.facts["left_locked"] = held
         for oid in th.holding:
             self.obj(oid, app).phase = "released"
         th.holding.clear()
@@ -134,7 +164,7 @@ class Reducer:
             {"thread": th.id, "object": ev.object_id, "op": ev.operation_id}
         )
         th.status, th.basis = "waiting", "observed"
-        th.waiting_on = {"queue": q.id, "op": "put"}
+        th.waiting_on = {"resource": q.id, "op": "put"}
         app.facts.update(size=len(q.items), maxsize=q.maxsize)
 
     def _end_wait(self, th: ThreadState, q: QueueState, ev: Event) -> bool:
@@ -175,7 +205,7 @@ class Reducer:
         q = self.queue(ev, app)
         q.blocked_gets.append({"thread": th.id, "op": ev.operation_id})
         th.status, th.basis = "waiting", "observed"
-        th.waiting_on = {"queue": q.id, "op": "get"}
+        th.waiting_on = {"resource": q.id, "op": "get"}
 
     def _get_completed(self, ev, app, th):
         q = self.queue(ev, app)
@@ -228,7 +258,7 @@ class Reducer:
         if q.unfinished > 0:
             q.joiners.append(th.id)
             th.status, th.basis = "waiting", "observed"
-            th.waiting_on = {"queue": q.id, "op": "join"}
+            th.waiting_on = {"resource": q.id, "op": "join"}
 
     def _join_end(self, ev, app, th):
         q = self.queue(ev, app)
@@ -251,14 +281,6 @@ class Reducer:
         self.obj(oid, app).phase = "discarded"
         app.motion = {"object": oid, "from": q.id, "to": None}
         app.facts["unfinished"] = q.unfinished
-
-
-def _resume(th: ThreadState) -> None:
-    """Status after a wait ends: back inside work, or merely not blocked."""
-    if th.work:
-        th.status, th.basis = "working", "observed"
-    else:
-        th.status, th.basis = "running", "inferred"
 
 
 _HANDLERS = {
@@ -289,4 +311,6 @@ _HANDLERS = {
     E.QUEUE_JOIN_FAILED: Reducer._join_end,
     E.QUEUE_SHUTDOWN_REQUESTED: Reducer._shutdown,
     E.QUEUE_ITEM_DISCARDED: Reducer._discarded,
+    **SYNC_HANDLERS,
+    **EXEC_HANDLERS,
 }

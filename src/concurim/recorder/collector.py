@@ -103,12 +103,26 @@ class Recorder:
 
     def source_of_callable(self, func: Any) -> Source | None:
         """Source of a function definition (used for thread entry points)."""
-        code = getattr(func, "__code__", None)
+        return self.source_of_code(getattr(func, "__code__", None))
+
+    def source_of_code(self, code: Any) -> Source | None:
+        """Source of a code object (functions, coroutines)."""
         if code is None or not self.config.capture_source_locations:
             return None
         return Source(
             self.display_path(code.co_filename),
             code.co_firstlineno,
+            code.co_qualname,
+        )
+
+    def source_of_frame(self, frame: Any) -> Source | None:
+        """Source of the line a (possibly suspended) frame is at."""
+        if not self.config.capture_source_locations:
+            return None
+        code = frame.f_code
+        return Source(
+            self.display_path(code.co_filename),
+            frame.f_lineno,
             code.co_qualname,
         )
 
@@ -172,6 +186,7 @@ class Recorder:
                 caused_by,
                 source,
                 metadata,
+                getattr(tls, "task_id", None),
             )
         finally:
             tls.busy = False
@@ -207,6 +222,7 @@ class Recorder:
         caused_by: str | None,
         source: Source | None,
         metadata: dict[str, Any] | None,
+        task_id: str | None = None,
     ) -> str | None:
         now = time.perf_counter_ns() - self._t0
         with self._lock:
@@ -224,6 +240,7 @@ class Recorder:
                     sequence=seq,
                     process_id=self.process_id,
                     thread_id=thread_id,
+                    task_id=task_id,
                     resource_id=resource_id,
                     object_id=object_id,
                     operation_id=operation_id,
@@ -233,6 +250,10 @@ class Recorder:
                 )
             )
         return event_id
+
+    def set_task(self, task_id: str | None) -> None:
+        """Attribute this thread's next events to an asyncio task."""
+        self._tls.task_id = task_id
 
     def new_operation_id(self) -> str:
         """Allocate an id linking the events of one logical operation."""

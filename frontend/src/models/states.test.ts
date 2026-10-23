@@ -18,6 +18,7 @@ function naiveFold(upTo: number) {
   for (const f of replay.frames.slice(0, upTo + 1)) {
     Object.assign(w.threads, f.changes.threads);
     Object.assign(w.queues, f.changes.queues);
+    Object.assign(w.syncs, f.changes.syncs);
     Object.assign(w.objects, f.changes.objects);
   }
   return w;

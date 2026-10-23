@@ -15,11 +15,22 @@ const LEVELS: { id: AutoLevel; name: string; help: string }[] = [
     help: "Records when every thread starts and finishes. Queues are not observed." },
   { id: "queues", name: "Threads + queues",
     help: "Also records queue.Queue objects created during the run. Opt-in: it " +
-      "temporarily replaces queue.Queue, so code that reads queue.queue directly " +
-      "sees internal wrappers." },
+      "temporarily replaces queue.Queue while recording." },
+  { id: "sync", name: "+ locks, semaphores, thread pools",
+    help: "Also records threading.Lock, RLock, Semaphore and " +
+      "ThreadPoolExecutor objects the program creates. While recording, " +
+      "isinstance(x, threading.Lock) is False for those locks." },
+  { id: "asyncio", name: "+ asyncio",
+    help: "Also records asyncio tasks, queues, locks and semaphores. " +
+      "Tasks are recorded when they run; uvloop is not supported." },
   { id: "none", name: "Concurim objects only",
     help: "Records only TracedQueue / TracedThread used by the program." },
 ];
+
+/** Short level names for run summaries. */
+export const LEVEL_NAME = Object.fromEntries(
+  LEVELS.map((l) => [l.id, l.name]),
+) as Record<AutoLevel, string>;
 
 interface Props {
   options: RunOptions;

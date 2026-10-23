@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Layout } from "../models/layout";
-import type { Replay } from "../models/replay";
+import { actorOf, type Replay } from "../models/replay";
 import { indexAtTime } from "../models/states";
 
 const DIMS = {
@@ -110,21 +110,24 @@ export function Timeline(
             {replay.spans.map((s) => {
               if (!s.thread || !lanes.includes(s.thread)) return null;
               const x1 = xOf(s.start);
+              // Lock holds are a thin bar, so they can overlap waits.
+              const hold = s.kind === "hold";
               return (
                 <rect key={s.operation} data-testid="span"
-                  x={x1} y={laneY(s.thread) + 6}
-                  width={Math.max(2, xOf(s.end) - x1)} height={LANE - 12}
+                  x={x1} y={laneY(s.thread) + (hold ? LANE - 9 : 6)}
+                  width={Math.max(2, xOf(s.end) - x1)} height={hold ? 4 : LANE - 12}
                   rx={3} className={`span span-${s.kind} out-${s.outcome}`}>
                   <title>{`${s.kind.replace("_", " ")} (${s.outcome})${s.name ? `: ${s.name}` : ""}`}</title>
                 </rect>
               );
             })}
             {n <= MAX_TICKS && events.map((e, i) => {
-              if (!e.thread_id || !lanes.includes(e.thread_id)) return null;
+              const who = actorOf(e);
+              if (!who || !lanes.includes(who)) return null;
               const tone = replay.frames[i].explanation.tone;
               return (
                 <line key={i} x1={xOf(i)} x2={xOf(i)}
-                  y1={laneY(e.thread_id) + 3} y2={laneY(e.thread_id) + LANE - 3}
+                  y1={laneY(who) + 3} y2={laneY(who) + LANE - 3}
                   className={`tick tone-${tone}`}>
                   <title>{`#${i + 1} ${e.event_type}`}</title>
                 </line>

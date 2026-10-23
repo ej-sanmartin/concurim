@@ -104,6 +104,8 @@ ul.history, ol.journey { list-style: none; margin: 0; padding: 0; }
 
 .eventlog input { width: 100%; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--panel); margin-bottom: 6px; }
 .eventlog ul { list-style: none; margin: 0; padding: 0; }
+.eventlog li { display: flex; }
+.eventlog li button.fold { width: auto; flex: none; display: block; padding: 0 6px; color: var(--accent); }
 .eventlog li button { display: grid; grid-template-columns: 38px 1fr auto; gap: 8px; width: 100%; padding: 2px 4px; }
 .eventlog li[data-current] { background: color-mix(in srgb, var(--accent) 18%, transparent); border-radius: 4px; }
 .eventlog .n { color: var(--muted); }
@@ -124,6 +126,8 @@ ul.history, ol.journey { list-style: none; margin: 0; padding: 0; }
 .life { stroke: var(--border); stroke-width: 2; }
 .span { opacity: 0.9; }
 .span-wait_put, .span-wait_get, .span-wait_join { fill: var(--c-waiting); opacity: 0.55; }
+.span-wait_lock { fill: var(--c-waiting); opacity: 0.55; }
+.span-hold { fill: var(--c-suspended); opacity: 0.6; }
 .span-work { fill: var(--c-working); opacity: 0.7; }
 .span.out-timeout, .span.out-failed { fill: var(--c-failed); }
 .tick { stroke-width: 1; stroke: var(--tone-info); opacity: 0.8; }

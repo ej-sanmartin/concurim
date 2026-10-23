@@ -1,4 +1,4 @@
-/** What the user clicked: a thread, a queue or a data item. */
+/** What the user clicked: a thread/task, a queue/pool, a lock or an item. */
 export type Selection =
-  | { kind: "thread" | "queue" | "object"; id: string }
+  | { kind: "thread" | "queue" | "sync" | "object"; id: string }
   | null;

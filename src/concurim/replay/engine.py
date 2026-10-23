@@ -26,6 +26,9 @@ _SPAN_OPEN = {
     E.QUEUE_PUT_BLOCKED: "wait_put",
     E.QUEUE_GET_BLOCKED: "wait_get",
     E.WORK_STARTED: "work",
+    E.EXECUTOR_TASK_STARTED: "work",
+    E.LOCK_ACQUIRE_BLOCKED: "wait_lock",
+    E.SEMAPHORE_ACQUIRE_BLOCKED: "wait_lock",
 }
 _SPAN_CLOSE = {
     E.QUEUE_PUT_COMPLETED: "completed",
@@ -38,6 +41,12 @@ _SPAN_CLOSE = {
     E.QUEUE_JOIN_FAILED: "failed",
     E.WORK_FINISHED: "completed",
     E.WORK_FAILED: "failed",
+    E.EXECUTOR_TASK_FINISHED: "completed",
+    E.EXECUTOR_TASK_FAILED: "failed",
+    E.LOCK_ACQUIRE_COMPLETED: "completed",
+    E.LOCK_ACQUIRE_FAILED: "failed",
+    E.SEMAPHORE_ACQUIRE_COMPLETED: "completed",
+    E.SEMAPHORE_ACQUIRE_FAILED: "failed",
 }
 
 
@@ -54,6 +63,7 @@ def build_replay(trace: Trace) -> dict[str, Any]:
     open_spans: dict[str, dict[str, Any]] = {}
     occupancy: dict[str, list[list[int]]] = {}
     journeys: dict[str, list[list[Any]]] = {}
+    holds: dict[tuple[str, str], dict[str, Any]] = {}
     last_index = max(len(trace.events) - 1, 0)
 
     for i, ev in enumerate(trace.events):
@@ -72,8 +82,10 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         _track_spans(i, ev, app, spans, open_spans)
         _track_occupancy(i, red, app, before, occupancy)
         _track_journeys(i, red, app, journeys)
+        _track_holds(i, ev, app, spans, holds)
 
-    for span in open_spans.values():
+    for span in [*open_spans.values(), *holds.values()]:
+        span.pop("depth", None)
         span.update(end=last_index, outcome="open")
         spans.append(span)
     spans.sort(key=lambda s: (s["start"], s["end"]))
@@ -110,6 +122,10 @@ def _snapshot(red: Reducer, app: Applied) -> dict[str, Any]:
         changes["queues"] = {
             q: snapshot(red.queues[q]) for q in sorted(app.queues)
         }
+    if app.syncs:
+        changes["syncs"] = {
+            s: snapshot(red.syncs[s]) for s in sorted(app.syncs)
+        }
     if app.objects:
         changes["objects"] = {
             o: snapshot(red.objects[o]) for o in sorted(app.objects)
@@ -137,7 +153,7 @@ def _track_spans(
     if kind is not None:
         open_spans[op] = {
             "kind": kind,
-            "thread": ev.thread_id,
+            "thread": ev.actor,
             "resource": ev.resource_id,
             "object": ev.object_id,
             "operation": op,
@@ -150,6 +166,42 @@ def _track_spans(
         span = open_spans.pop(op)
         span.update(end=i, outcome=outcome)
         spans.append(span)
+
+
+def _track_holds(
+    i: int,
+    ev: Event,
+    app: Applied,
+    spans: list[dict[str, Any]],
+    holds: dict[tuple[str, str], dict[str, Any]],
+) -> None:
+    """Spans for the time an actor holds a lock (first acquire to release)."""
+    rid = ev.resource_id or ""
+    taken = app.facts.get("acquired")
+    if taken:
+        key = (rid, taken)
+        if key in holds:
+            holds[key]["depth"] += 1
+        else:
+            holds[key] = {
+                "kind": "hold",
+                "thread": taken,
+                "resource": rid,
+                "object": None,
+                "operation": f"hold-{i}",
+                "start": i,
+                "name": None,
+                "depth": 1,
+            }
+    freed = app.facts.get("released_holder")
+    key = (rid, freed or "")
+    if freed and key in holds:
+        holds[key]["depth"] -= app.facts.get("count", 1)
+        if holds[key]["depth"] <= 0:
+            span = holds.pop(key)
+            del span["depth"]
+            span.update(end=i, outcome="completed")
+            spans.append(span)
 
 
 def _track_occupancy(
@@ -185,22 +237,38 @@ def _entities(
     first: dict[str, int] = {}
     last: dict[str, int] = {}
     for i, ev in enumerate(events):
-        if ev.thread_id:
-            first.setdefault(ev.thread_id, i)
-            last[ev.thread_id] = i
+        if ev.actor:
+            first.setdefault(ev.actor, i)
+            last[ev.actor] = i
     return {
         "threads": {
             t.id: {
                 "id": t.id,
                 "name": t.name,
+                "kind": t.kind,
                 "first": first.get(t.id, 0),
                 "last": last.get(t.id, 0),
             }
             for t in red.threads.values()
         },
         "queues": {
-            q.id: {"id": q.id, "name": q.name, "maxsize": q.maxsize}
+            q.id: {
+                "id": q.id,
+                "name": q.name,
+                "maxsize": q.maxsize,
+                "kind": q.kind,
+                "workers": q.workers,
+            }
             for q in red.queues.values()
+        },
+        "syncs": {
+            s.id: {
+                "id": s.id,
+                "name": s.name,
+                "kind": s.kind,
+                "capacity": s.capacity,
+            }
+            for s in red.syncs.values()
         },
         "objects": {
             o.id: {

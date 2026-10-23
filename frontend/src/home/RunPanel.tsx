@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { cancelRun, getRun, planRun, startRun } from "../api/client";
 import type { RunPlan, RunStatus, SessionInfo, WorkspaceInfo } from "../api/types";
-import { RunForm, type RunOptions } from "./RunForm";
+import { LEVEL_NAME, RunForm, type RunOptions } from "./RunForm";
 import { RunProgress } from "./RunProgress";
 
 const POLL_MS = 400;
-const LEVEL_NAME = { none: "Concurim objects only", threads: "Threads", queues: "Threads + queues" };
 
 interface Props {
   session: SessionInfo;

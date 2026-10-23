@@ -1,4 +1,4 @@
-import type { Replay } from "./replay";
+import { actorOf, type Replay } from "./replay";
 
 export interface Point {
   x: number;
@@ -10,44 +10,82 @@ export interface Layout {
   height: number;
   threads: Record<string, Point & { role: Role }>;
   queues: Record<string, Point & { slots: number; w: number }>;
+  syncs: Record<string, Point>;
   edges: { thread: string; queue: string; dir: "put" | "get" }[];
+  /** Which threads/tasks use which lock or semaphore. */
+  syncEdges: { thread: string; sync: string }[];
+  /** Worker groups big enough to collapse into one node. */
+  groups: Group[];
   threadOrder: string[];
+}
+
+export interface Group extends Point {
+  key: string;
+  role: Role;
+  members: string[];
 }
 
 export type Role = "producer" | "consumer" | "stage" | "other";
 
 export const NODE_W = 150;
 export const NODE_H = 78;
+export const SYNC_W = 190;
+export const SYNC_H = 84;
+export const GROUP_W_NODE = 170;
+export const GROUP_H_NODE = 86;
+/** Groups with at least this many members can be collapsed. */
+export const GROUP_MIN = 4;
 const SLOT = 46;
 const MAX_SLOTS = 8;
 const GROUP_W = 230;
 const PAD = 40;
 const ROW = 134;
+const SYNC_BAND = 150;
+
+type Touches = Map<string, Set<string>>;
+
+const add = (m: Touches, key: string, value: string) => {
+  if (!m.has(key)) m.set(key, new Set());
+  m.get(key)!.add(value);
+};
+
+/** Which resource-bound operations each actor performed, from the events. */
+function observeUse(replay: Replay) {
+  const queues = new Set(Object.keys(replay.entities.queues));
+  const syncs = new Set(Object.keys(replay.entities.syncs ?? {}));
+  const gets: Touches = new Map();
+  const puts: Touches = new Map();
+  const locks: Touches = new Map();
+  for (const ev of replay.events) {
+    const actor = actorOf(ev);
+    const rid = ev.resource_id;
+    if (!actor || !rid) continue;
+    const type = ev.event_type;
+    if (syncs.has(rid)) {
+      if (type.includes(".acquire.")) add(locks, actor, rid);
+    } else if (queues.has(rid)) {
+      if (type.startsWith("queue.get.") || type === "executor.task.started") add(gets, actor, rid);
+      else if (type.startsWith("queue.put.") || type === "executor.submit") add(puts, actor, rid);
+    }
+  }
+  return { gets, puts, locks };
+}
 
 /**
- * Place threads and queues from *observed* operations only.
+ * Place threads/tasks, queues (and executors) and locks from *observed*
+ * operations only.
  *
- * A thread that gets from queue k is drawn right of it (stage k+1); one that
- * only puts is drawn at stage 0. Threads that touch no queue (for example a
- * coordinator that only joins) sit in a band above. Roles are labels derived
- * from observed operations, not from thread names.
+ * An actor that gets from queue k is drawn right of it (stage k+1); one that
+ * only puts is drawn at stage 0. Actors that touch no queue (for example a
+ * coordinator that only joins, or tasks that only wait on locks) sit in a
+ * band above; locks and semaphores sit in a band below. Roles are labels
+ * derived from observed operations, not from names.
  */
 export function computeLayout(replay: Replay): Layout {
   const queueIds = Object.keys(replay.entities.queues);
+  const syncIds = Object.keys(replay.entities.syncs ?? {});
   const qIndex = new Map(queueIds.map((q, i) => [q, i]));
-  const gets = new Map<string, Set<string>>();
-  const puts = new Map<string, Set<string>>();
-  for (const ev of replay.events) {
-    if (!ev.thread_id || !ev.resource_id || !qIndex.has(ev.resource_id)) continue;
-    const bucket = ev.event_type.startsWith("queue.get.")
-      ? gets
-      : ev.event_type.startsWith("queue.put.")
-        ? puts
-        : null;
-    if (!bucket) continue;
-    if (!bucket.has(ev.thread_id)) bucket.set(ev.thread_id, new Set());
-    bucket.get(ev.thread_id)!.add(ev.resource_id);
-  }
+  const { gets, puts, locks } = observeUse(replay);
 
   const stageOf = (t: string): number | null => {
     const g = gets.get(t);
@@ -86,9 +124,10 @@ export function computeLayout(replay: Replay): Layout {
     if (s === null) others.push(t);
     else groups[s].push(t);
   }
-  const rows = Math.max(1, ...groups.map((g) => g.length));
+  const rows = Math.max(0, ...groups.map((g) => g.length));
   const bandH = others.length ? 120 : 0;
-  const height = PAD + bandH + rows * ROW + PAD;
+  const syncH = syncIds.length ? SYNC_BAND : 0;
+  const height = PAD + bandH + rows * ROW + syncH + PAD;
 
   const threads: Layout["threads"] = {};
   groups.forEach((g, gi) =>
@@ -112,12 +151,30 @@ export function computeLayout(replay: Replay): Layout {
     queues[q] = { x: queueX[i], y: qy, slots: slots[i], w: queueW[i] };
   });
 
+  const syncs: Layout["syncs"] = {};
+  const sy = PAD + bandH + rows * ROW + syncH / 2;
+  syncIds.forEach((s, i) => {
+    syncs[s] = { x: totalW / 2 + (i - (syncIds.length - 1) / 2) * (SYNC_W + 40), y: sy };
+  });
+
   const edges: Layout["edges"] = [];
   for (const [t, set] of puts) for (const q of set) edges.push({ thread: t, queue: q, dir: "put" });
   for (const [t, set] of gets) for (const q of set) edges.push({ thread: t, queue: q, dir: "get" });
+  const syncEdges: Layout["syncEdges"] = [];
+  for (const [t, set] of locks) for (const s of set) syncEdges.push({ thread: t, sync: s });
+
+  const bundles = [...groups.map((g, gi) => ({ key: `stage-${gi}`, members: g })),
+    { key: "others", members: others }];
+  const grouped: Group[] = bundles
+    .filter((b) => b.members.length >= GROUP_MIN)
+    .map((b) => {
+      const at = b.members.map((t) => threads[t]);
+      const mean = (f: (p: Point) => number) => at.reduce((a, p) => a + f(p), 0) / at.length;
+      return { key: b.key, role: at[0].role, members: b.members, x: mean((p) => p.x), y: mean((p) => p.y) };
+    });
 
   const threadOrder = [...groups.flat(), ...others];
-  return { width: totalW, height, threads, queues, edges, threadOrder };
+  return { width: totalW, height, threads, queues, syncs, edges, syncEdges, groups: grouped, threadOrder };
 }
 
 /** X/Y of the item slot ``index`` (0 = front, drawn at the right end). */

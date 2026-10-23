@@ -1,4 +1,4 @@
-import type { TraceEvent } from "../models/replay";
+import { actorOf, type TraceEvent } from "../models/replay";
 import type { Selection } from "../models/selection";
 
 /** An event where a thread started waiting (put/get blocked on a queue). */
@@ -7,8 +7,8 @@ export const isBlocking = (ev: TraceEvent): boolean =>
 
 /** Whether ``ev`` involves the selected thread, queue or object. */
 export function matchesSelection(ev: TraceEvent, sel: NonNullable<Selection>): boolean {
-  if (sel.kind === "thread") return ev.thread_id === sel.id;
-  if (sel.kind === "queue") return ev.resource_id === sel.id;
+  if (sel.kind === "thread") return actorOf(ev) === sel.id;
+  if (sel.kind === "queue" || sel.kind === "sync") return ev.resource_id === sel.id;
   return ev.object_id === sel.id;
 }
 

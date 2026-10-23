@@ -4,6 +4,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
   stage: "Stages",
   other: "Other threads",
   queue: "Queues",
+  lock: "Locks",
   item: "Items",
 };
 
@@ -11,6 +12,10 @@ interface Props {
   categories: string[];
   hidden: Set<string>;
   canFocus: boolean;
+  /** Whether any worker group is big enough to collapse. */
+  canGroup: boolean;
+  grouped: boolean;
+  onGroup: () => void;
   onToggle: (category: string) => void;
   onFit: () => void;
   onReset: () => void;
@@ -29,9 +34,15 @@ export function FlowToolbar(p: Props) {
         Reset layout
       </button>
       <button onClick={p.onFocus} disabled={!p.canFocus} data-testid="focus"
-        title="Center on the selected thread, queue or item">
+        title="Center on the selected thread, queue, lock or item">
         Focus selection
       </button>
+      {p.canGroup && (
+        <button onClick={p.onGroup} data-testid="group-toggle" aria-pressed={p.grouped}
+          title="Collapse many similar workers into one node">
+          {p.grouped ? "Expand workers" : "Group workers"}
+        </button>
+      )}
       <span className="sep" />
       {p.categories.map((c) => (
         <label key={c} className="chip" data-off={p.hidden.has(c) || undefined}>

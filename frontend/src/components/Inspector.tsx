@@ -2,6 +2,8 @@ import type { Replay } from "../models/replay";
 import type { WorldState } from "../models/states";
 import type { Selection } from "../models/selection";
 import { STATUS_LABEL } from "../animations/palette";
+import { nameOf } from "../models/names";
+import { actorOf } from "../models/replay";
 
 interface Props {
   replay: Replay;
@@ -16,15 +18,14 @@ const MAX_ROWS = 60;
 /** Identity, current state and history for the selected entity. */
 export function Inspector({ replay, world, index, selection, onSeek }: Props) {
   if (!selection) {
-    return <p className="muted">Click a thread, queue, or item to inspect it.</p>;
+    return <p className="muted">Click a thread, queue, lock, or item to inspect it.</p>;
   }
-  const name = (id: string | null | undefined) =>
-    (id && (replay.entities.threads[id]?.name ?? replay.entities.queues[id]?.name)) || id || "–";
+  const name = (id: string | null | undefined) => nameOf(replay, id);
   const history = replay.events
     .map((e, i) => ({ e, i }))
     .filter(({ e }) =>
-      selection.kind === "thread" ? e.thread_id === selection.id
-        : selection.kind === "queue" ? e.resource_id === selection.id
+      selection.kind === "thread" ? actorOf(e) === selection.id
+        : selection.kind === "queue" || selection.kind === "sync" ? e.resource_id === selection.id
           : e.object_id === selection.id);
   let facts: [string, string][] = [];
 
@@ -32,13 +33,25 @@ export function Inspector({ replay, world, index, selection, onSeek }: Props) {
     const s = world.threads[selection.id];
     facts = s ? [
       ["state", `${STATUS_LABEL[s.status]} (${s.basis})`],
-      ["waiting on", s.waiting_on ? `${s.waiting_on.op} ${name(s.waiting_on.queue)}` : "–"],
+      ["waiting on", s.waiting_on ? `${s.waiting_on.op} ${name(s.waiting_on.resource)}` : "–"],
       ["received, not finished", s.holding.join(", ") || "–"],
       ["current work", s.work ?? "–"],
     ] : [["state", "not seen yet at this point"]];
+  } else if (selection.kind === "sync") {
+    const s = world.syncs[selection.id];
+    const info = replay.entities.syncs[selection.id];
+    facts = s ? [
+      ["kind", info.kind],
+      ...(info.kind === "semaphore"
+        ? [["permits free", `${s.value} of ${s.capacity}`] as [string, string]] : []),
+      ["held by", s.holders.map(name).join(", ") || "–"],
+      ["waiting", s.waiters.map((b) => name(b.thread)).join(", ") || "–"],
+    ] : [["state", "not created yet at this point"]];
   } else if (selection.kind === "queue") {
     const q = world.queues[selection.id];
     facts = q ? [
+      ...(q.kind === "executor"
+        ? [["workers running", `${q.running} of ${q.workers}`] as [string, string]] : []),
       ["capacity", q.maxsize > 0 ? String(q.maxsize) : "unbounded"],
       ["queued (front first)", q.size === 0 ? "empty" : q.items.join(", ") + (q.size > q.items.length ? ` … (+${q.size - q.items.length})` : "")],
       ["unfinished tasks", String(q.unfinished)],

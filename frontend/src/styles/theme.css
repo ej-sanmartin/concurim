@@ -14,6 +14,8 @@
   --c-working: #4fd18b;
   --c-finished: #6d7690;
   --c-failed: #ff6b6b;
+  --c-suspended: #a58bff;
+  --c-cancelled: #ff9f5a;
   --c-idle: #3b4357;
   --tone-info: #6d7690;
   --tone-ok: #4fd18b;
@@ -39,6 +41,8 @@
   --c-working: #1f9d63;
   --c-finished: #8a93a8;
   --c-failed: #d63c3c;
+  --c-suspended: #7a5ce0;
+  --c-cancelled: #d9741c;
   --c-idle: #b7bfd0;
   --tone-info: #8a93a8;
   --tone-ok: #1f9d63;

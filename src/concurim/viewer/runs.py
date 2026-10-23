@@ -12,11 +12,9 @@ import os
 import secrets
 import shlex
 import shutil
-import signal
 import subprocess
 import sys
 import threading
-import time
 from collections import OrderedDict
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -26,6 +24,7 @@ from typing import Any, cast
 import concurim
 from concurim.instrumentation.auto import LEVELS
 from concurim.recorder.serialization import Trace, load_trace
+from concurim.viewer.procs import escalate, kill_now, spawn
 from concurim.viewer.workspaces import Workspaces
 
 # Runs in the *target* interpreter, which may not have Concurim installed:
@@ -41,7 +40,6 @@ BOOT = (
 )
 MAX_OUTPUT = 256 * 1024
 MAX_PLANS = 32
-GRACE_SECONDS = 3.0
 
 
 class RunError(ValueError):
@@ -215,15 +213,7 @@ class RunManager:
         plan.trace_path.parent.mkdir(parents=True, exist_ok=True)
         env = dict(os.environ, PYTHONUNBUFFERED="1")
         try:
-            run.proc = subprocess.Popen(  # noqa: S603 - user-confirmed run
-                plan.argv,
-                cwd=plan.cwd,
-                env=env,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                start_new_session=os.name != "nt",
-            )
+            run.proc = spawn(plan.argv, cwd=plan.cwd, env=env)
         except OSError as exc:
             run.state, run.error = "error", f"could not start: {exc}"
             return run.status()
@@ -277,7 +267,7 @@ class RunManager:
         if run.state == "running" and run.proc and run.proc.poll() is None:
             run.cancelled = True
             threading.Thread(
-                target=_escalate, args=(run.proc,), daemon=True
+                target=escalate, args=(run.proc,), daemon=True
             ).start()
         return run.status()
 
@@ -285,8 +275,7 @@ class RunManager:
         """Stop any running program and delete scratch files."""
         for run in self._runs.values():
             if run.proc and run.proc.poll() is None:
-                _signal(run.proc, signal.SIGKILL if os.name != "nt" else 0)
-                run.proc.wait()
+                kill_now(run.proc)
         self.workspaces.cleanup()
 
 
@@ -299,25 +288,3 @@ def _interpreter(value: object) -> str:
     if not os.path.isfile(path) or not os.access(path, os.X_OK):
         raise RunError(f"interpreter not found or not executable: {path}")
     return path
-
-
-def _signal(proc: subprocess.Popen[bytes], sig: int) -> None:
-    """Signal the program's whole process group (just terminate on Windows)."""
-    try:
-        if os.name == "nt":
-            proc.terminate()
-        else:
-            os.killpg(proc.pid, sig)
-    except (ProcessLookupError, PermissionError):
-        pass
-
-
-def _escalate(proc: subprocess.Popen[bytes]) -> None:
-    kill = getattr(signal, "SIGKILL", signal.SIGTERM)
-    for sig in (signal.SIGINT, signal.SIGTERM, kill):
-        _signal(proc, sig)
-        deadline = time.monotonic() + GRACE_SECONDS
-        while time.monotonic() < deadline:
-            if proc.poll() is not None:
-                return
-            time.sleep(0.05)

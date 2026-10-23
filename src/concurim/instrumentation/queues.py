@@ -13,7 +13,8 @@ true order of queue mutations. "Started", "blocked", "timeout" and "failed"
 events are emitted outside the mutex and describe what the caller observed.
 
 Items are stored in a private envelope carrying a logical ``object_id``;
-consumers still receive the original object.
+consumers still receive the original object, and code that reads
+``queue.queue`` sees the original items too.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ from typing import Any
 from concurim.instrumentation.queue_support import (
     QueueItem,
     _Envelope,
+    _Items,
     _Op,
     _unwrap,
     run_two_phase,
@@ -67,6 +69,9 @@ class TracedQueue(_BaseQueue):
         return rec.resource_id(
             self, "queue", self._cz_name, {"maxsize": self.maxsize}
         )
+
+    def _init(self, maxsize: int) -> None:
+        self.queue = _Items()
 
     # -- hooks, called by queue.Queue while holding the mutex ---------------
 

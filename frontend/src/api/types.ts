@@ -1,7 +1,7 @@
 // Shapes returned by the local Concurim server (viewer/api.py).
 
-export type AutoLevel = "none" | "threads" | "queues";
-export type Observability = "managed" | "queues" | "threads";
+export type AutoLevel = "none" | "threads" | "queues" | "sync" | "asyncio";
+export type Observability = "managed" | Exclude<AutoLevel, "none">;
 
 export interface SampleInfo {
   id: string;

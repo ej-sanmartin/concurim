@@ -10,6 +10,11 @@ const QUICK = new Set([
   "queue.put.started",
   "queue.get.started",
   "queue.created",
+  "lock.created",
+  "lock.acquire.started",
+  "semaphore.created",
+  "semaphore.acquire.started",
+  "executor.created",
 ]);
 
 export const BASE_DELAY_MS = 620;

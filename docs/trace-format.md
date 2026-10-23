@@ -1,0 +1,77 @@
+# Trace format (`.concurim`, format_version 1)
+
+A trace is a zip archive:
+
+```text
+metadata.json     one JSON object (see below)
+events.jsonl      one event per line, in recording order
+sources/N.txt     optional source text, only with --include-source
+```
+
+Loading is defensive: member names are looked up exactly (nothing is extracted
+to disk), sizes are capped (metadata 1 MiB, events 512 MiB / 5 M events, each
+source 1 MiB / 500 sources), every field is type-checked, `sequence` must
+strictly increase per process, and unknown `schema_version`/`format_version`
+are rejected. Nothing is unpickled or executed.
+
+## metadata.json
+
+| key | meaning |
+| --- | --- |
+| `format`, `format_version` | `"concurim-trace"`, `1` |
+| `schema_version` | version of the event schema (`1`) |
+| `concurim_version`, `created_at_utc`, `duration_ns` | provenance |
+| `event_count`, `dropped_events`, `truncated` | **loss is explicit**: when the buffer limit is hit new events are dropped and `truncated` is true |
+| `config` | recording options used (`include_source`, `preview`, ...) |
+| `environment` | implementation, version, `free_threaded_build` (build capability), `gil_enabled` (runtime state or `null`), platform |
+| `coverage.observed` / `coverage.not_observed` | what this recorder can and cannot see |
+| `program` | script name, `exit_code`, `exception` type if any |
+| `sources` | map of display path to `sources/N.txt` |
+
+## Events
+
+Schema: [`src/concurim/schema/event.schema.json`](../src/concurim/schema/event.schema.json).
+
+| field | meaning |
+| --- | --- |
+| `event_id`, `sequence` | unique id; **total order within one process** (assigned under the collector lock) |
+| `timestamp_ns` | monotonic ns since recording start (never wall clock) |
+| `process_id`, `thread_id`, `task_id` | logical identities (`thread-2`, not OS ids, which get reused) |
+| `resource_id`, `object_id`, `operation_id` | queue/lock id; logical item id; ties started/blocked/completed of one call |
+| `caused_by` | explicit causal predecessor, e.g. a get's `caused_by` is the put that enqueued the item, a started thread's is its `start()` call |
+| `source` | `file`, `line`, `function` of the user code that triggered it (relative to the start directory when inside it) |
+| `metadata` | at most 24 scalar values, strings ≤ 512 chars |
+
+Cross-process ordering is **not** assumed: only per-process `sequence` and
+explicit `caused_by` edges are reliable.
+
+### Queue events
+
+`queue.created`, `queue.put.{started,blocked,completed,timeout,failed}`,
+`queue.get.{started,blocked,completed,timeout,failed}`, `queue.task_done`,
+`queue.task_done.failed`, `queue.join.{started,completed,failed}`,
+`queue.shutdown.requested`, `queue.item.discarded`.
+
+Semantics worth knowing:
+
+- `put.completed` / `get.completed` / `item.discarded` are emitted while the
+  queue's mutex is held, so their order is the real order of queue mutations.
+- `blocked` means the queue was full (put) or empty (get) when the call first
+  tried; the operation may complete immediately after.
+- `task_done` and `shutdown.requested` are emitted just *before* the call so
+  any thread they wake records its events afterwards.
+- `put_nowait`/`get_nowait` appear as `block: false` on a single started event.
+
+### Other events
+
+`thread.registered` (first event seen from a thread), `thread.start.requested`,
+`thread.started`, `thread.finished`, `thread.failed`, `work.started`,
+`work.finished`, `work.failed`, `object.derived` (explicit lineage).
+
+## Replay document
+
+`concurim.build_replay(trace)` (also served at `/api/replay`) returns the
+events plus one *frame* per event: changed entity states, an explanation
+`{title, text, tone, inferred[]}`, and an optional `motion`. Queue frames carry
+`size` (true occupancy) and at most the first 64 `items`. The same trace
+always produces the same document.

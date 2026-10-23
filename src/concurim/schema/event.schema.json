@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://concurim.dev/schema/event-v1.json",
+  "title": "Concurim event (schema_version 1)",
+  "type": "object",
+  "required": ["schema_version", "event_id", "event_type", "timestamp_ns",
+               "sequence", "process_id"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {"const": 1},
+    "event_id": {"type": "string", "maxLength": 512},
+    "event_type": {"type": "string", "maxLength": 512},
+    "timestamp_ns": {"type": "integer", "description": "Monotonic ns since recording start"},
+    "sequence": {"type": "integer", "minimum": 1,
+                 "description": "Total order within one process"},
+    "process_id": {"type": "integer"},
+    "thread_id": {"type": "string", "description": "Logical id, e.g. thread-2"},
+    "task_id": {"type": "string"},
+    "resource_id": {"type": "string"},
+    "object_id": {"type": "string"},
+    "operation_id": {"type": "string"},
+    "caused_by": {"type": "string", "description": "event_id of an explicit causal predecessor"},
+    "source": {
+      "type": "object",
+      "required": ["file", "line", "function"],
+      "additionalProperties": false,
+      "properties": {
+        "file": {"type": "string"},
+        "line": {"type": "integer"},
+        "function": {"type": "string"}
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "maxProperties": 24,
+      "additionalProperties": {
+        "type": ["string", "number", "boolean", "null"],
+        "maxLength": 512
+      }
+    }
+  }
+}

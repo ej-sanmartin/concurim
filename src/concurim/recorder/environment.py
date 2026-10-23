@@ -30,18 +30,42 @@ def environment_info() -> dict[str, Any]:
     }
 
 
-# Honest, human-readable statement of what the built-in recorder can and
-# cannot see. Stored in every trace and shown by the viewer.
-COVERAGE: dict[str, list[str]] = {
-    "observed": [
-        "Operations on concurim.TracedQueue (put/get/task_done/join/shutdown)",
-        "Lifecycle of concurim.TracedThread",
-        "Explicit concurim.work() spans and object lineage annotations",
-    ],
-    "not_observed": [
-        "Plain queue.Queue, threading.Lock and other uninstrumented objects",
+def coverage_for(auto: str) -> dict[str, list[str]]:
+    """Honest statement of what a recording at level ``auto`` can see.
+
+    Stored in every trace and shown by the viewer; ``not_observed`` is as
+    important as ``observed``.
+    """
+    observed = [
+        "Operations on concurim.TracedQueue, when the program uses it",
+        "Lifecycle of concurim.TracedThread, when used",
+        "Explicit concurim.work() spans and lineage annotations, when used",
+    ]
+    not_observed = [
         "CPU scheduling and GIL ownership (not derivable from these events)",
         "What a worker does between instrumented operations",
         "Child processes (multiprocessing is not instrumented yet)",
-    ],
-}
+        "threading locks, events, conditions, semaphores and executors",
+    ]
+    if auto in ("threads", "queues"):
+        observed.append(
+            "Start, finish and failure of every threading.Thread started "
+            "during the run, including subclasses that override run()"
+        )
+    if auto == "queues":
+        observed.append(
+            "queue.Queue objects created during the run "
+            "(put/get/task_done/join/shutdown)"
+        )
+        not_observed.append(
+            "Queues created before recording, LifoQueue, PriorityQueue "
+            "and SimpleQueue"
+        )
+    else:
+        not_observed.append(
+            "Plain queue.Queue contents and operations (use the queue "
+            "instrumentation level, or concurim.TracedQueue)"
+        )
+    if auto == "none":
+        not_observed.append("Plain threading.Thread objects")
+    return {"observed": observed, "not_observed": not_observed}

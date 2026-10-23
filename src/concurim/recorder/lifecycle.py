@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import datetime
 import sys
 from pathlib import Path
@@ -10,7 +11,7 @@ from typing import Any
 from concurim import __version__
 from concurim.config import RecorderConfig
 from concurim.recorder.collector import Recorder
-from concurim.recorder.environment import COVERAGE, environment_info
+from concurim.recorder.environment import coverage_for, environment_info
 from concurim.recorder.serialization import MAX_SOURCE_BYTES, write_trace
 
 _active: Recorder | None = None
@@ -45,18 +46,27 @@ class record:  # noqa: N801 - used as a context manager, like ``open``
         self.path = Path(path) if path else None
         self.recorder = Recorder(config or RecorderConfig(**config_kwargs))
         self.program: dict[str, Any] = dict(program or {})
+        self._auto: contextlib.AbstractContextManager[None] | None = None
 
     def __enter__(self) -> Recorder:
         global _active
         if _active is not None:
             raise RuntimeError("a Concurim recording is already active")
         _active = self.recorder
+        if self.recorder.config.auto != "none":
+            from concurim.instrumentation.auto import auto_instrument
+
+            self._auto = auto_instrument(self.recorder.config.auto)
+            self._auto.__enter__()
         return self.recorder
 
     def __exit__(
         self, exc_type: type[BaseException] | None, *_: object
     ) -> None:
         global _active
+        if self._auto is not None:
+            self._auto.__exit__(None, None, None)
+            self._auto = None
         _active = None
         if exc_type is not None and exc_type is not SystemExit:
             self.program.setdefault("exception", exc_type.__name__)
@@ -89,7 +99,7 @@ def build_metadata(
         "truncated": recorder.dropped > 0,
         "config": recorder.config.public_dict(),
         "environment": environment_info(),
-        "coverage": COVERAGE,
+        "coverage": coverage_for(recorder.config.auto),
         "program": program,
         "argv0": Path(sys.argv[0]).name if sys.argv else None,
     }

@@ -1,6 +1,6 @@
 import type { Replay } from "../models/replay";
 import type { WorldState } from "../models/states";
-import type { Selection } from "../views/DataFlowView";
+import type { Selection } from "../models/selection";
 import { STATUS_LABEL } from "../animations/palette";
 
 interface Props {

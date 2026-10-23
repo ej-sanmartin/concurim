@@ -8,30 +8,53 @@ blocked and why, where every item is, and what each event means.
 
 ![Concurim viewer, dark theme](docs/images/viewer-dark.png)
 
-*A real recording of [`examples/threaded_pipeline.py`](examples/threaded_pipeline.py)
+*A real recording of [`src/concurim/samples/threaded_pipeline.py`](src/concurim/samples/threaded_pipeline.py)
 (event 41 of 120): two producers and two consumers share a queue of capacity 3.
 Items 5 and 4 are queued (the front is on the right), consumers are working on
 3 and 2, and both producers are still inside a blocked `put` with items 6 and 7
 in hand.*
 
-> **Status: 0.1 (alpha).** Milestone 1: threaded producer-consumer pipelines
-> with `queue.Queue`. Locks, semaphores, conditions, asyncio and process pools
-> are planned. See [what is and is not observed](docs/limitations.md).
+> **Status: 0.1 (alpha).** Threaded producer-consumer pipelines with
+> `queue.Queue`, recorded automatically or with Concurim-managed primitives.
+> Locks, semaphores, executors, asyncio and process pools are planned. See
+> [what is and is not observed](docs/limitations.md).
 
 ## Try it
 
 ```bash
 git clone <this repo> && cd concurim
 uv sync
-uv run concurim demo        # records a real threaded pipeline, opens the viewer
+uv run concurim             # opens the home screen in your browser
+uv run concurim demo        # records a real threaded pipeline and opens it
 ```
 
-Once published (not yet): `pip install concurim`, `uv tool install concurim`,
-or `uvx concurim demo`.
+Once published (not yet): `uvx concurim`, `uv tool install concurim`.
+
+On the home screen you can:
+
+- **Drop a `.concurim` trace** (or open an example): it opens immediately and
+  nothing is executed.
+- **Drop a `.py` file or a project folder**, pick the entry point, interpreter,
+  arguments and observability level, review the plan, then click
+  **Record execution**. The finished recording opens automatically. A dropped
+  program is *never* run until you click, and it runs with your user's
+  permissions (there is no sandbox).
+
+### Observability levels
+
+| Level | What it does | You see |
+| --- | --- | --- |
+| Basic (default) | Nothing patched | Only what you instrument |
+| Threads | Records `threading.Thread` start/run/finish | Thread lifecycles |
+| Threads + queues | Also swaps `queue.Queue` while recording (reversed on exit) | Queue operations; item *envelopes*, not identity |
+| Managed | You use `TracedQueue` / `TracedThread` | Full detail incl. item identity |
+
+Anything a level cannot see is shown as unavailable, never guessed. Choose with
+`concurim record --auto none|threads|queues`.
 
 ## Record your own program
 
-Use the traced primitives where you want to see behavior:
+For full detail (item identity, work spans), use the traced primitives:
 
 ```python
 import queue
@@ -58,7 +81,7 @@ threads = [TracedThread(target=worker, name=f"worker-{i}") for i in range(2)]
 Outside a recording they behave exactly like `queue.Queue` / `threading.Thread`.
 
 ```bash
-uv run concurim record examples/threaded_pipeline.py          # -> threaded_pipeline.concurim
+uv run concurim record src/concurim/samples/threaded_pipeline.py          # -> threaded_pipeline.concurim
 uv run concurim record -o run.concurim --include-source my_app.py arg1 arg2
 uv run concurim view run.concurim
 uv run concurim inspect run.concurim                           # metadata + coverage
@@ -90,6 +113,10 @@ To record a project, install Concurim into the project
 | Speed | `[` `]` or the speed menu |
 | Seek | scrub bar, event number box, or click/drag the timeline |
 | Inspect | click a thread, the queue, or an item token |
+| Drag / zoom | drag nodes, scroll to zoom; layout is remembered. **Fit** / **Reset layout** in the toolbar, `f` fits |
+| Views | **Animation** (understanding) or **Timeline** (dense, technical); same position, click an event then *Show in animation* |
+| Pacing | *Explain* slows down blocking events; *Real time* follows recorded gaps (optionally compressing idle time) |
+| Jump | next blocking event, next event for the selection |
 | Source | **Source** tab (needs `--include-source`) highlights the event's line |
 
 The explanation card describes the current event and labels anything inferred.

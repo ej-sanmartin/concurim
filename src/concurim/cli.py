@@ -11,9 +11,10 @@ from pathlib import Path
 
 from concurim import __version__
 from concurim.config import RecorderConfig
-from concurim.examples import example_path
+from concurim.instrumentation.auto import LEVELS
 from concurim.recorder.events import TraceFormatError
 from concurim.recorder.serialization import Trace, load_trace
+from concurim.samples import sample_file
 
 SHARING_WARNING = (
     "Note: traces can contain file paths, thread names and (if enabled) "
@@ -28,7 +29,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version", action="version", version=f"concurim {__version__}"
     )
-    sub = parser.add_subparsers(dest="command", required=True)
+    _add_server_options(parser)
+    parser.set_defaults(func=_cmd_home)
+    sub = parser.add_subparsers(dest="command")
 
     rec = sub.add_parser(
         "record",
@@ -53,6 +56,13 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="record bounded previews of primitive payloads",
     )
+    rec.add_argument(
+        "--auto",
+        choices=LEVELS,
+        default="threads",
+        help="automatic instrumentation: none (only Concurim objects), "
+        "threads (default), queues (threads + queue.Queue)",
+    )
     rec.add_argument("--max-events", type=int, default=1_000_000)
     rec.add_argument(
         "--light",
@@ -70,19 +80,23 @@ def build_parser() -> argparse.ArgumentParser:
         cmd = sub.add_parser(name, help=help_)
         if name == "view":
             cmd.add_argument("trace", type=Path)
-        cmd.add_argument(
-            "--port",
-            type=int,
-            default=0,
-            help="port to serve on (default: any free port)",
-        )
-        cmd.add_argument("--no-browser", action="store_true")
+        _add_server_options(cmd)
         cmd.set_defaults(func=func)
 
     insp = sub.add_parser("inspect", help="print trace metadata")
     insp.add_argument("trace", type=Path)
     insp.set_defaults(func=_cmd_inspect)
     return parser
+
+
+def _add_server_options(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=0,
+        help="port to serve on (default: any free port)",
+    )
+    parser.add_argument("--no-browser", action="store_true")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -107,6 +121,7 @@ def _cmd_record(args: argparse.Namespace) -> int:
         include_source=args.include_source,
         preview=args.preview,
         capture_source_locations=not args.light,
+        auto=args.auto,
     )
     code, count = run_recorded(script, args.script_args, output, config)
     print(f"concurim: recorded {count} events to {output}", file=sys.stderr)
@@ -115,12 +130,14 @@ def _cmd_record(args: argparse.Namespace) -> int:
     return code
 
 
-def _serve(trace: Trace, port: int, open_browser: bool) -> int:
+def _serve(
+    trace: Trace | None, port: int, open_browser: bool, label: str = "trace"
+) -> int:
     from concurim.viewer.server import ViewerServer
 
     if not (Path(__file__).parent / "viewer/static/index.html").is_file():
         raise FileNotFoundError("viewer assets missing (run scripts/build.sh)")
-    server = ViewerServer(trace, port)
+    server = ViewerServer(trace, port, label=label)
     print(f"concurim: viewer at {server.url} (Ctrl-C to stop)")
     if open_browser:
         webbrowser.open(server.url)
@@ -133,14 +150,20 @@ def _serve(trace: Trace, port: int, open_browser: bool) -> int:
     return 0
 
 
+def _cmd_home(args: argparse.Namespace) -> int:
+    return _serve(None, args.port, not args.no_browser)
+
+
 def _cmd_view(args: argparse.Namespace) -> int:
-    return _serve(load_trace(args.trace), args.port, not args.no_browser)
+    return _serve(
+        load_trace(args.trace), args.port, not args.no_browser, args.trace.name
+    )
 
 
 def _cmd_demo(args: argparse.Namespace) -> int:
     from concurim.runner import run_recorded
 
-    script = example_path("threaded_pipeline.py")
+    script = sample_file("threaded_pipeline.py")
     out = Path(tempfile.mkdtemp(prefix="concurim-demo-")) / "demo.concurim"
     # The bundled example is trusted, so its source is embedded.
     config = RecorderConfig(include_source=True, source_root=str(script.parent))
@@ -148,7 +171,7 @@ def _cmd_demo(args: argparse.Namespace) -> int:
     print(f"concurim: recorded {count} events from {script.name}")
     if code != 0:
         return code
-    return _serve(load_trace(out), args.port, not args.no_browser)
+    return _serve(load_trace(out), args.port, not args.no_browser, script.name)
 
 
 def _cmd_inspect(args: argparse.Namespace) -> int:

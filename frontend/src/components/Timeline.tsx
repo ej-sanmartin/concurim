@@ -3,10 +3,11 @@ import type { Layout } from "../models/layout";
 import type { Replay } from "../models/replay";
 import { indexAtTime } from "../models/states";
 
-const LANE = 28;
-const OCC = 56;
+const DIMS = {
+  compact: { lane: 28, occ: 56, zooms: [1, 2, 4, 8, 16] },
+  full: { lane: 38, occ: 84, zooms: [1, 2, 4, 8, 16, 32, 64] },
+};
 const BASE_W = 1200;
-const ZOOMS = [1, 2, 4, 8, 16];
 const MAX_TICKS = 4000;
 
 interface Props {
@@ -14,10 +15,17 @@ interface Props {
   layout: Layout;
   index: number;
   onSeek: (i: number) => void;
+  /** ``full`` fills the stage as the dense Timeline mode. */
+  variant?: "compact" | "full";
+  /** Offered in Timeline mode: show the selected event as an animation. */
+  onOpenInAnimation?: () => void;
 }
 
 /** Lanes per thread, wait/work spans, queue occupancy and the playhead. */
-export function Timeline({ replay, layout, index, onSeek }: Props) {
+export function Timeline(
+  { replay, layout, index, onSeek, variant = "compact", onOpenInAnimation }: Props,
+) {
+  const { lane: LANE, occ: OCC, zooms: ZOOMS } = DIMS[variant];
   const [zoom, setZoom] = useState(1);
   const [mode, setMode] = useState<"event" | "time">("event");
   const scroller = useRef<HTMLDivElement | null>(null);
@@ -50,7 +58,7 @@ export function Timeline({ replay, layout, index, onSeek }: Props) {
   });
 
   return (
-    <div className="timeline" data-testid="timeline">
+    <div className={`timeline ${variant}`} data-testid="timeline">
       <div className="tl-tools">
         <span>Timeline</span>
         <button onClick={() => setMode(mode === "event" ? "time" : "event")}
@@ -62,6 +70,13 @@ export function Timeline({ replay, layout, index, onSeek }: Props) {
         <span>{zoom}×</span>
         <button disabled={zoom === ZOOMS[ZOOMS.length - 1]} aria-label="Zoom in"
           onClick={() => setZoom(ZOOMS[Math.min(ZOOMS.length - 1, ZOOMS.indexOf(zoom) + 1)])}>+</button>
+        {onOpenInAnimation && (
+          <button className="to-animation" data-testid="show-in-animation"
+            onClick={onOpenInAnimation}
+            title="Open the selected event in the animated view (or double-click)">
+            Show in Animation
+          </button>
+        )}
       </div>
       <div className="tl-body">
         <div className="tl-labels" style={{ paddingTop: 0 }}>
@@ -79,7 +94,7 @@ export function Timeline({ replay, layout, index, onSeek }: Props) {
             seekFromPointer(e);
           }} onPointerMove={(e) => {
             if (e.buttons === 1) seekFromPointer(e);
-          }}>
+          }} onDoubleClick={onOpenInAnimation}>
             {lanes.map((t, li) => (
               <rect key={t} x={0} y={li * LANE} width={W} height={LANE}
                 className={li % 2 ? "lane odd" : "lane"} />
@@ -110,12 +125,14 @@ export function Timeline({ replay, layout, index, onSeek }: Props) {
               return (
                 <line key={i} x1={xOf(i)} x2={xOf(i)}
                   y1={laneY(e.thread_id) + 3} y2={laneY(e.thread_id) + LANE - 3}
-                  className={`tick tone-${tone}`} />
+                  className={`tick tone-${tone}`}>
+                  <title>{`#${i + 1} ${e.event_type}`}</title>
+                </line>
               );
             })}
             {queues.map((q, qi) => (
               <Occupancy key={q} replay={replay} queue={q} xOf={xOf}
-                y={lanes.length * LANE + qi * OCC} W={W} n={n} />
+                y={lanes.length * LANE + qi * OCC} occ={OCC} W={W} n={n} />
             ))}
             <line x1={xOf(index)} x2={xOf(index)} y1={0} y2={H}
               className="playhead" data-testid="playhead" />
@@ -128,12 +145,12 @@ export function Timeline({ replay, layout, index, onSeek }: Props) {
 
 function Occupancy(p: {
   replay: Replay; queue: string; xOf: (i: number) => number;
-  y: number; W: number; n: number;
+  y: number; occ: number; W: number; n: number;
 }) {
   const pts = p.replay.occupancy[p.queue] ?? [];
   const cap = p.replay.entities.queues[p.queue].maxsize;
   const peak = Math.max(1, cap, ...pts.map((o) => Math.max(o[1], o[2])));
-  const h = OCC - 14;
+  const h = p.occ - 14;
   const yOf = (v: number) => p.y + 7 + h - (v / peak) * h;
   const path = (col: 1 | 2) => {
     let d = "";
@@ -147,7 +164,7 @@ function Occupancy(p: {
   };
   return (
     <g className="occ">
-      <rect x={0} y={p.y} width={p.W} height={OCC} className="lane" />
+      <rect x={0} y={p.y} width={p.W} height={p.occ} className="lane" />
       {cap > 0 && (
         <line x1={0} x2={p.W} y1={yOf(cap)} y2={yOf(cap)} className="capline" />
       )}

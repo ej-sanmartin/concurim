@@ -11,7 +11,7 @@ import json
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, BinaryIO
 
 from concurim.recorder.events import SCHEMA_VERSION, Event, TraceFormatError
 
@@ -63,7 +63,7 @@ def write_trace(
             zf.writestr(member, text)
 
 
-def load_trace(path: str | Path) -> Trace:
+def load_trace(path: str | Path | BinaryIO) -> Trace:
     """Load and fully validate a trace. Raises ``TraceFormatError``."""
     try:
         zf = zipfile.ZipFile(path)

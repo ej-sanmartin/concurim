@@ -4,7 +4,7 @@ import { computeLayout, slotPoint } from "./layout";
 import type { Replay } from "./replay";
 import { buildStates, EMPTY_WORLD, indexAtTime } from "./states";
 
-// Real capture of examples/threaded_pipeline.py (scripts/make_fixtures.py).
+// Real capture of samples/threaded_pipeline.py (scripts/make_fixtures.py).
 const replay: Replay = JSON.parse(
   readFileSync(
     new URL("../../tests/fixtures/pipeline.replay.json", import.meta.url),

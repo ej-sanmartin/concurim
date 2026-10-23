@@ -3,8 +3,16 @@
 ## Model
 
 - The viewer is local-only: it binds `127.0.0.1`, rejects other `Host`
-  headers, sends a strict CSP, has no write endpoints, serves static files
+  headers, sends a strict CSP, serves static files
   with path containment, and serves source text only from the loaded trace.
+- The viewer has a small write surface: opening a trace, uploading a program to
+  a private scratch directory, and starting/cancelling a run. Every `POST`
+  needs a per-launch token (embedded only in the served page), a same-origin
+  `Origin`, and is size-limited. Scratch files use sanitized paths and caps.
+- **Recording runs your Python code with your user's permissions. There is no
+  sandbox.** A run starts only after the plan (command, working directory,
+  arguments, interpreter) is shown and "Record execution" is clicked. Dropping
+  a `.concurim` trace never executes anything.
 - Traces are data: they are parsed with `json` and validated; size limits
   apply; nothing is unpickled or executed. Strings are rendered as text.
 - No telemetry, uploads, accounts, or network use.

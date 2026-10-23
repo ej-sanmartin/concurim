@@ -37,3 +37,11 @@ Google style, 80 columns (hard limit 100), a short docstring per function,
 files under ~300 lines (split before they grow), no duplicated logic.
 Prefer the simplest design; do not add dependencies lightly (runtime
 dependencies are currently zero).
+
+## Frontend development note
+
+`npm run dev` proxies `/api` to the server, but POST features (opening
+examples, dropping files, running programs) fail there: they need the
+per-launch token the real server embeds only in the HTML it serves. For those, run `npm run build` and use `uv run concurim`.
+Playwright starts two servers (`concurim demo` on 8799, the home screen on
+8798) via `uv run`.

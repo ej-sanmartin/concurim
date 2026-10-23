@@ -39,7 +39,11 @@ mark_internal(queue.__file__)
 _NEG_TIMEOUT = "'timeout' must be a non-negative number"
 
 
-class TracedQueue(queue.Queue):
+# Bound once: ``queue.Queue`` may be replaced while auto-instrumenting.
+_BaseQueue = queue.Queue
+
+
+class TracedQueue(_BaseQueue):
     """Drop-in ``queue.Queue`` that records its operations.
 
     Outside a ``concurim.record()`` block it behaves exactly like
@@ -156,8 +160,8 @@ class TracedQueue(queue.Queue):
             oid,
             block,
             timeout,
-            lambda: queue.Queue.put(self, env, False),
-            lambda t: queue.Queue.put(self, env, True, t),
+            lambda: _BaseQueue.put(self, env, False),
+            lambda t: _BaseQueue.put(self, env, True, t),
         )
         return None
 
@@ -190,8 +194,8 @@ class TracedQueue(queue.Queue):
                 None,
                 block,
                 timeout,
-                lambda: queue.Queue.get(self, False),
-                lambda t: queue.Queue.get(self, True, t),
+                lambda: _BaseQueue.get(self, False),
+                lambda t: _BaseQueue.get(self, True, t),
             )
         finally:
             tls.get_op = None

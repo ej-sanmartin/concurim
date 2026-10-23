@@ -14,6 +14,7 @@ from concurim.recorder.serialization import load_trace
 from concurim.viewer.server import ViewerServer
 
 ROOT = Path(__file__).resolve().parents[2]
+SAMPLES = ROOT / "src" / "concurim" / "samples"
 
 
 def run_cli(*args, cwd=None):
@@ -114,7 +115,7 @@ def test_bundled_example_records_and_inspects(tmp_path):
         "-o",
         str(out),
         "--include-source",
-        str(ROOT / "examples" / "threaded_pipeline.py"),
+        str(SAMPLES / "threaded_pipeline.py"),
     )
     assert r.returncode == 0, r.stderr
     assert "processed 12 jobs" in r.stdout
@@ -131,7 +132,7 @@ def server(tmp_path):
         "-o",
         str(out),
         "--include-source",
-        str(ROOT / "examples" / "threaded_pipeline.py"),
+        str(SAMPLES / "threaded_pipeline.py"),
         cwd=ROOT,
     )
     assert r.returncode == 0, r.stderr

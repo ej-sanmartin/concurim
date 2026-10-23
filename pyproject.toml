@@ -36,16 +36,19 @@ build-backend = "hatchling.build"
 packages = ["src/concurim"]
 # Compiled viewer assets are committed under viewer/static (see
 # scripts/build.sh), so they ship even though they are build output.
-artifacts = ["src/concurim/viewer/static/**"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"examples" = "concurim/_examples"
+artifacts = [
+  "src/concurim/viewer/static/**",
+  "src/concurim/samples/*.concurim",
+]
 
 [tool.hatch.build.targets.sdist]
-include = ["src", "examples", "tests", "frontend/src", "frontend/*.json",
+include = ["src", "tests", "frontend/src", "frontend/*.json",
   "frontend/*.ts", "frontend/*.html", "docs", "scripts", "README.md",
   "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md"]
-artifacts = ["src/concurim/viewer/static/**"]
+artifacts = [
+  "src/concurim/viewer/static/**",
+  "src/concurim/samples/*.concurim",
+]
 
 [tool.ruff]
 line-length = 80
@@ -57,7 +60,7 @@ ignore = ["S101"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "B"]
-"examples/**" = ["S"]
+"src/concurim/samples/*.py" = ["S"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -21,7 +21,7 @@ OUT = ROOT / "frontend" / "tests" / "fixtures"
 
 
 def main() -> None:
-    script = ROOT / "examples" / "threaded_pipeline.py"
+    script = ROOT / "src" / "concurim" / "samples" / "threaded_pipeline.py"
     with tempfile.TemporaryDirectory() as tmp:
         trace_path = Path(tmp) / "pipeline.concurim"
         config = RecorderConfig(
@@ -31,7 +31,7 @@ def main() -> None:
         assert code == 0
         replay = build_replay(load_trace(trace_path))
     replay["metadata"]["fixture"] = (
-        "real capture of examples/threaded_pipeline.py"
+        "real capture of samples/threaded_pipeline.py"
     )
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "pipeline.replay.json").write_text(json.dumps(replay))

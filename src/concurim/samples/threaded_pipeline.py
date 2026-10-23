@@ -2,9 +2,8 @@
 
 Two producers feed one bounded queue; two consumers drain it. Producers are
 faster than consumers, so the queue fills up (backpressure) and consumers
-sometimes wait for work. Run it directly, or record it with::
-
-    concurim record examples/threaded_pipeline.py
+sometimes wait for work. Run it directly, record it with
+``concurim record``, or open it from the gallery in ``concurim``.
 """
 
 import queue

@@ -1,0 +1,77 @@
+{
+  "samples": [
+    {
+      "id": "producer-consumer",
+      "title": "Producer-consumer",
+      "observability": "managed",
+      "summary": "Two producers and two consumers share a bounded queue of three jobs.",
+      "watch": [
+        "Producers wait when the queue is full",
+        "Consumers wait when it is empty",
+        "Each job can be followed from put to get to work"
+      ],
+      "source": "threaded_pipeline.py",
+      "trace": "producer-consumer.concurim",
+      "auto": "none"
+    },
+    {
+      "id": "backpressure",
+      "title": "Bounded queue backpressure",
+      "observability": "managed",
+      "summary": "A fast producer, a slow consumer and a queue that holds only two items.",
+      "watch": [
+        "The producer blocks on put until the consumer makes room",
+        "Queue depth sits at its limit while the consumer works"
+      ],
+      "source": "backpressure.py",
+      "trace": "backpressure.concurim",
+      "auto": "none"
+    },
+    {
+      "id": "shutdown",
+      "title": "Cancellation and shutdown",
+      "observability": "managed",
+      "summary": "An immediate queue shutdown discards pending jobs and stops two workers.",
+      "watch": [
+        "Queued jobs are discarded, not processed",
+        "Jobs already in progress still finish"
+      ],
+      "source": "shutdown.py",
+      "trace": "shutdown.concurim",
+      "auto": "none"
+    },
+    {
+      "id": "plain-threads",
+      "title": "Plain program, threads only",
+      "observability": "threads",
+      "summary": "An ordinary program with no Concurim imports, recorded at the threads level.",
+      "watch": [
+        "Threads and their lifetimes are visible",
+        "The queue is not observed, and the viewer says so"
+      ],
+      "source": "plain_pipeline.py",
+      "trace": "plain-threads.concurim",
+      "auto": "threads"
+    },
+    {
+      "id": "plain-queues",
+      "title": "Plain program, threads and queues",
+      "observability": "queues",
+      "summary": "The same program recorded with automatic queue instrumentation.",
+      "watch": [
+        "Compare with the previous example: same code, more visible",
+        "Queue contents appear without changing the program"
+      ],
+      "source": "plain_pipeline.py",
+      "trace": "plain-queues.concurim",
+      "auto": "queues"
+    }
+  ],
+  "planned": [
+    {"title": "Lock contention", "needs": "lock instrumentation"},
+    {"title": "ThreadPoolExecutor", "needs": "executor instrumentation"},
+    {"title": "Asyncio task switching", "needs": "asyncio support"},
+    {"title": "asyncio.Queue", "needs": "asyncio support"},
+    {"title": "Semaphores", "needs": "semaphore instrumentation"}
+  ]
+}

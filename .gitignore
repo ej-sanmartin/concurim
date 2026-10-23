@@ -10,4 +10,5 @@ frontend/test-results/
 frontend/playwright-report/
 *.concurim
 !tests/fixtures/*.concurim
+!src/concurim/samples/*.concurim
 .env

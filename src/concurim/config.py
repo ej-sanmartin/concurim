@@ -22,6 +22,10 @@ class RecorderConfig:
             default because payloads may be sensitive.
         preview_max_chars: Maximum characters kept in a preview.
         redact_patterns: Regexes replaced by ``[redacted]`` in previews.
+        auto: Automatic instrumentation level while recording: ``"none"``
+            (only Concurim-managed objects), ``"threads"`` (every
+            ``threading.Thread``) or ``"queues"`` (threads plus
+            ``queue.Queue`` objects created during the run).
         source_root: Directory that recorded paths are shown relative to,
             and the only place source files may be embedded from. Defaults
             to the current directory when recording starts.
@@ -34,8 +38,11 @@ class RecorderConfig:
     preview_max_chars: int = 48
     redact_patterns: tuple[str, ...] = ()
     source_root: str | None = None
+    auto: str = "none"
 
     def __post_init__(self) -> None:
+        if self.auto not in ("none", "threads", "queues"):
+            raise ValueError(f"unknown auto level {self.auto!r}")
         if self.max_events < 1:
             raise ValueError("max_events must be positive")
         if not 0 <= self.preview_max_chars <= 256:
@@ -55,4 +62,5 @@ class RecorderConfig:
             "include_source": self.include_source,
             "capture_source_locations": self.capture_source_locations,
             "preview": self.preview,
+            "auto": self.auto,
         }

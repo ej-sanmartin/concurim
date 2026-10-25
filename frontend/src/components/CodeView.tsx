@@ -47,6 +47,8 @@ export function CodeView({ replay, world, index, event }: Props) {
         <p>Source text is not part of this trace.</p>
         <p>Record with <code>--include-source</code> (or tick “Include source”
           on the home screen) to see the code here.</p>
+        <p>Only files inside the script’s own folder are stored, never
+          installed packages.</p>
       </div>
     );
   }

@@ -122,6 +122,8 @@ def _cmd_record(args: argparse.Namespace) -> int:
         preview=args.preview,
         capture_source_locations=not args.light,
         auto=args.auto,
+        # Paths are shown relative to the script, wherever it is run from.
+        source_root=str(script.resolve().parent),
     )
     code, count = run_recorded(script, args.script_args, output, config)
     print(f"concurim: recorded {count} events to {output}", file=sys.stderr)

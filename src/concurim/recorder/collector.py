@@ -135,7 +135,10 @@ class Recorder:
         self.source_files.add(filename)
         path = filename
         if os.path.isabs(filename):
-            rel = os.path.relpath(filename, self._cwd)
+            # realpath: on macOS ``/tmp`` is a symlink, so the path the
+            # script was started with and ``co_filename`` can disagree.
+            root = os.path.realpath(self._cwd)
+            rel = os.path.relpath(os.path.realpath(filename), root)
             if not rel.startswith(".."):
                 path = rel
         self._rel_cache[filename] = path

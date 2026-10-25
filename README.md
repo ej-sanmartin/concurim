@@ -15,9 +15,9 @@ lock, where every item is, and what each event means.
 
 *A real recording of [`src/concurim/samples/threaded_pipeline.py`](src/concurim/samples/threaded_pipeline.py)
 (event 41 of 120): two producers and two consumers share a queue of capacity 3.
-Items 5 and 4 are queued (the front is on the right), consumers are working on
-3 and 2, and both producers are still inside a blocked `put` with items 6 and 7
-in hand.*
+Items 5 and 4 are queued (the front is on the right), consumer-1 is working on
+1 and consumer-2 on 3, and both producers are still inside a blocked `put`
+with items 6 and 7 in hand.*
 
 > **Status: 0.1 (alpha).** Threads, `queue.Queue`, locks, semaphores,
 > `ThreadPoolExecutor`, `ProcessPoolExecutor` and asyncio (tasks, queues,

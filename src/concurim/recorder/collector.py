@@ -147,7 +147,10 @@ class Recorder:
             # realpath: on macOS ``/tmp`` is a symlink, so the path the
             # script was started with and ``co_filename`` can disagree.
             root = os.path.realpath(self._cwd)
-            rel = os.path.relpath(os.path.realpath(filename), root)
+            try:
+                rel = os.path.relpath(os.path.realpath(filename), root)
+            except ValueError:  # Windows: another drive has no relative path
+                rel = ".."
             if not rel.startswith(".."):
                 path = rel
         self._rel_cache[filename] = path

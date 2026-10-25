@@ -42,7 +42,11 @@ def _under_root(filename: str, root: str) -> bool:
         return False
     if not os.path.isabs(filename):
         return True
-    rel = os.path.relpath(os.path.realpath(filename), os.path.realpath(root))
+    real, real_root = os.path.realpath(filename), os.path.realpath(root)
+    try:
+        rel = os.path.relpath(real, real_root)
+    except ValueError:  # Windows: another drive is never under the root
+        return False
     return not rel.startswith("..") and "site-packages" not in rel
 
 
@@ -124,6 +128,42 @@ class LineSampler:
     def _is_user(self, code: Any) -> bool:
         name = code.co_filename
         return name not in INTERNAL_FILES and _under_root(name, self._root)
+
+
+def entry_profile(
+    root: str, emit: Callable[[str, int, str], None]
+) -> Callable[[Any, str, Any], None]:
+    """Profile hook that reports the first user function entered.
+
+    For ``sys.setprofile`` during one worker task. The hook removes
+    itself after the report. ``emit(filename, line, qualname)`` is
+    called with profiling already off.
+
+    A background sampler only runs when it holds the GIL, so a tight or
+    short task can finish with no sample. This records the entry on the
+    worker thread itself.
+    """
+
+    def hook(frame: Any, event: str, arg: Any) -> None:
+        if event != "call":
+            return
+        code = frame.f_code
+        filename = code.co_filename
+        if filename.startswith("<") or filename in INTERNAL_FILES:
+            return
+        # Off before ``_under_root``, which calls back into Python.
+        # A failure here must not break the task being recorded.
+        sys.setprofile(None)
+        try:
+            if not _under_root(filename, root):
+                sys.setprofile(hook)
+                return
+            line = frame.f_lineno or code.co_firstlineno
+            emit(filename, line, code.co_qualname)
+        except Exception:
+            return
+
+    return hook
 
 
 def start_sampling(rec: Recorder) -> LineSampler | None:

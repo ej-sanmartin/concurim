@@ -6,9 +6,12 @@ the parent turns those reports into events, attributed to a logical actor per
 worker process. No pickling of recorder state happens: only small tuples of
 primitives cross the pipe.
 
+When sampling is on, the worker reports the user function it entered (on
+its own thread, so a tight task cannot finish unseen) and later lines from
+a background sampler.
+
 Honest limits: events from workers are stamped when the parent *receives*
-them (the worker's own clock reading is kept in ``child_ns``), and nothing
-that happens inside a worker besides task start/end is observed.
+them (the worker's own clock reading is kept in ``child_ns``).
 """
 
 from __future__ import annotations
@@ -20,6 +23,7 @@ import functools
 import multiprocessing
 import multiprocessing.queues
 import os
+import sys
 import threading
 import time
 from collections.abc import Callable
@@ -30,7 +34,7 @@ from concurim.recorder.collector import Recorder, mark_internal
 from concurim.recorder.events import EventType as E
 from concurim.recorder.events import Source
 from concurim.recorder.lifecycle import active_recorder, forget_recorder
-from concurim.recorder.sampler import LineSampler, wanted
+from concurim.recorder.sampler import LineSampler, entry_profile, wanted
 
 mark_internal(__file__)
 mark_internal(concurrent.futures.process.__file__)
@@ -48,6 +52,7 @@ _BasePool = concurrent.futures.ProcessPoolExecutor
 # Set in each worker process by ``_child_init`` and ``_child_call``.
 _CHILD_QUEUE: Any = None
 _CURRENT_OP: str | None = None
+_SAMPLE_ROOT: str | None = None
 
 
 def _child_init(
@@ -60,10 +65,12 @@ def _child_init(
 
     ``sampling`` is ``(source root, seconds between samples)`` or ``None``.
     """
-    global _CHILD_QUEUE
+    global _CHILD_QUEUE, _SAMPLE_ROOT
     _CHILD_QUEUE = queue
+    _SAMPLE_ROOT = None
     forget_recorder()  # a forked worker inherits the parent's recorder
     if sampling is not None:
+        _SAMPLE_ROOT = sampling[0]
         main = threading.get_ident()
         LineSampler(
             sampling[0],
@@ -95,6 +102,13 @@ def _report(
         )
 
 
+def _emit_line(filename: str, line: int, qualname: str) -> None:
+    """Report one sampled line for the task running in this worker."""
+    op = _CURRENT_OP
+    if op is not None:
+        _report("line", op, where=(filename, line, qualname))
+
+
 def _child_call(
     op: str,
     fn: Callable[..., Any],
@@ -105,15 +119,24 @@ def _child_call(
     global _CURRENT_OP
     _report("started", op)
     _CURRENT_OP = op  # after "started", so no sample precedes it
+    hook = None
+    if _SAMPLE_ROOT is not None and sys.getprofile() is None:
+        hook = entry_profile(_SAMPLE_ROOT, _emit_line)
+        sys.setprofile(hook)
     try:
         result = fn(*args, **kwargs)
     except BaseException as error:
         _CURRENT_OP = None
         _report("failed", op, type(error).__name__)
         raise
-    _CURRENT_OP = None
-    _report("finished", op)
-    return result
+    else:
+        _CURRENT_OP = None
+        _report("finished", op)
+        return result
+    finally:
+        # Leave a profile the task installed itself.
+        if hook is not None and sys.getprofile() is hook:
+            sys.setprofile(None)
 
 
 def _task_of(fn: Callable[..., Any]) -> Callable[..., Any]:

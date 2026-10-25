@@ -135,8 +135,12 @@ def test_sample_limit_is_reported_in_the_replay():
 
 
 def test_process_pool_workers_are_sampled_inside_their_task():
+    # Longer than the task, so the hit is the worker recording the
+    # function it entered.
     config = RecorderConfig(
-        include_source=True, source_root=str(Path(__file__).parent)
+        include_source=True,
+        source_root=str(Path(__file__).parent),
+        sample_interval_ms=10_000,
     )
     with (
         record(config=config) as rec,

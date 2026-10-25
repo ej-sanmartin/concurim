@@ -57,8 +57,8 @@
 ## ProcessPoolExecutor
 
 - Workers are shown as processes (`SpawnProcess-N`); tasks flow through the
-  pool like thread-pool tasks. Only start, finish and failure of each task are
-  seen; **nothing inside a worker** is observed.
+  pool like thread-pool tasks. Start, finish and failure of each task are
+  seen. With source included, the code view also follows the worker's line.
 - Timestamps are taken in the parent when a worker's report arrives, so they
   can lag the real moment slightly. The worker's own clock is kept as
   `child_ns` but never compared across processes.

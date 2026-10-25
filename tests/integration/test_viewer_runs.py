@@ -111,6 +111,10 @@ def test_exit_status_is_preserved(client):
     assert (run["state"], run["exit_code"]) == ("failed", 7)
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Windows cannot send Ctrl-C to the program: cancel terminates it",
+)
 def test_cancel_interrupts_a_running_program_and_keeps_a_trace(client):
     code = (
         "import threading, time\nthreading.Thread(target=lambda: 1).start()\n"
@@ -166,6 +170,9 @@ def test_interpreter_can_be_chosen_and_is_validated(client, tmp_path):
     assert run["state"] == "finished"
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32", reason="the fake interpreter is a shell script"
+)
 def test_too_old_interpreter_is_reported_not_hidden(client, tmp_path):
     fake = tmp_path / "python"
     fake.write_text(

@@ -113,7 +113,9 @@
 - Tested on macOS (CPython 3.13, 3.14 and the free-threaded 3.14t build,
   where the full suite passes with the GIL off). Linux, and Windows, run in
   CI; the Windows job is marked experimental and its process-control code
-  (`viewer/procs.py`) has never been run by the maintainers.
+  (`viewer/procs.py`) has never been run by the maintainers. On Windows,
+  **Cancel** terminates the program at once (there is no Ctrl-C to send), so
+  no trace is saved for a cancelled run.
 - The viewer is split in two JavaScript chunks: ~316 kB loaded on the home
   screen and ~223 kB (React Flow) loaded when a recording is opened.
 - Large graphs: groups of 4 or more similar workers can be collapsed

@@ -20,6 +20,8 @@ jobs:
           - { os: windows-latest, python: "3.14", experimental: true }
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.experimental }}
+    # The suite takes about two minutes; a hang must not hold a runner.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5

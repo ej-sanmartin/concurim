@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import concurrent.futures.thread
+import contextlib
 from collections.abc import Callable
 from typing import Any
 
@@ -117,10 +118,12 @@ class TracedThreadPoolExecutor(_BasePool):
         rec = active_recorder() if self._cz_on else None
         if rec is not None and not getattr(self, "_cz_closed", False):
             self._cz_closed = True
-            rec.emit(
-                E.EXECUTOR_SHUTDOWN,
-                resource_id=self._cz_rid(rec),
-                source=rec.capture_source(),
-                metadata={"wait": wait, "cancel_futures": cancel_futures},
-            )
+            # Recording must never keep the pool from shutting down.
+            with contextlib.suppress(Exception):
+                rec.emit(
+                    E.EXECUTOR_SHUTDOWN,
+                    resource_id=self._cz_rid(rec),
+                    source=rec.capture_source(),
+                    metadata={"wait": wait, "cancel_futures": cancel_futures},
+                )
         super().shutdown(wait, cancel_futures=cancel_futures)

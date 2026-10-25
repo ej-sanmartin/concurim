@@ -238,12 +238,14 @@ class TracedProcessPoolExecutor(_BasePool):
         rec = active_recorder() if self._cz_queue is not None else None
         if rec is not None and not self._cz_closed:
             self._cz_closed = True
-            rec.emit(
-                E.EXECUTOR_SHUTDOWN,
-                resource_id=self._cz_rid(rec),
-                source=rec.capture_source(),
-                metadata={"wait": wait, "cancel_futures": cancel_futures},
-            )
+            # Recording must never keep the pool from shutting down.
+            with contextlib.suppress(Exception):
+                rec.emit(
+                    E.EXECUTOR_SHUTDOWN,
+                    resource_id=self._cz_rid(rec),
+                    source=rec.capture_source(),
+                    metadata={"wait": wait, "cancel_futures": cancel_futures},
+                )
         super().shutdown(wait, cancel_futures=cancel_futures)
         if wait and self._cz_thread is not None and rec is not None:
             self._cz_queue.put(None)  # all workers are gone: flush and stop

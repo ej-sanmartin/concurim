@@ -35,6 +35,11 @@ class RecorderConfig:
         source_root: Directory that recorded paths are shown relative to,
             and the only place source files may be embedded from. Defaults
             to the current directory when recording starts.
+        sample_interval_ms: How often (milliseconds) a background thread
+            samples which line each worker is running, so the code view can
+            follow the work between instrumented calls. Only used with
+            ``include_source``; ``0`` turns sampling off. Sampling is
+            approximate and slightly slows the program.
     """
 
     max_events: int = 1_000_000
@@ -45,6 +50,7 @@ class RecorderConfig:
     redact_patterns: tuple[str, ...] = ()
     source_root: str | None = None
     auto: str = "none"
+    sample_interval_ms: float = 5.0
 
     def __post_init__(self) -> None:
         if self.auto not in LEVELS:
@@ -53,6 +59,8 @@ class RecorderConfig:
             raise ValueError("max_events must be positive")
         if not 0 <= self.preview_max_chars <= 256:
             raise ValueError("preview_max_chars must be in [0, 256]")
+        if not 0 <= self.sample_interval_ms <= 10_000:
+            raise ValueError("sample_interval_ms must be in [0, 10000]")
         for pattern in self.redact_patterns:
             re.compile(pattern)
 
@@ -69,4 +77,5 @@ class RecorderConfig:
             "capture_source_locations": self.capture_source_locations,
             "preview": self.preview,
             "auto": self.auto,
+            "sample_interval_ms": self.sample_interval_ms,
         }

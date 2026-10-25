@@ -74,6 +74,8 @@ class EventType:
     TASK_FINISHED = "task.finished"
     TASK_FAILED = "task.failed"
     TASK_CANCELLED = "task.cancelled"
+    # Sampled, approximate position of a worker (not a state change).
+    CODE_SAMPLED = "code.sampled"
 
 
 @dataclass(frozen=True, slots=True)

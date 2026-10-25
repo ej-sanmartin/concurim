@@ -45,8 +45,9 @@
 - CPU scheduling and **GIL ownership**. Python-level events do not give exact
   GIL timelines. The trace records interpreter facts only (version,
   free-threaded *build*, GIL *runtime* state) so a trace can be interpreted.
-- What a worker does between instrumented calls. Thread status "running (not
-  blocked)" is therefore **inferred** and drawn with a dashed border.
+- What a worker does between instrumented calls, beyond the sampled line of
+  the code view. Thread status "running (not blocked)" is therefore
+  **inferred** and drawn with a dashed border.
 - Which item `task_done()` refers to, unless `object_id=` is passed.
 - `multiprocessing` (`Pool`, `Process`), `threading.Event`, `Condition`,
   `Barrier`, `asyncio.Event`/`Condition` (later milestones).
@@ -67,9 +68,23 @@
 
 ## Code view
 
-- Lines come from recorded source locations: a pool task or thread target is
-  placed on its function's first line (the recorder does not trace line by
-  line); blocked calls and awaits sit on the exact line.
+- A pool task or thread target starts at its function: until the position
+  inside it is known, the **whole function body** is shaded. Blocked calls and
+  awaits sit on the exact line.
+- With source included, a background thread samples where each thread, asyncio
+  task and process-pool worker is every `sample_interval_ms` (default 5 ms;
+  `0` turns it off) and records `code.sampled`. Sampled lines are drawn with
+  a `≈` and are **approximate**: a line shorter than the interval can be
+  missed, and CPython only lets the sampler look when a thread yields the GIL,
+  so a tight loop usually shows its last line, and blocking calls (`sleep`,
+  I/O, locks) are over-represented.
+- Samples are stored in the trace but kept out of the event list, timeline and
+  playback. At most 100,000 samples per process are kept; after that the
+  code view is stale (the viewer warns for the main process; pool workers
+  stop silently). Sampling slows the program a little.
+- A sample only follows user code (files under the script's folder, never
+  installed packages); the innermost such frame wins, so a helper function in
+  another file is shown there.
 - Needs source in the trace (`--include-source`); otherwise a hint is shown.
 
 ## Behavior you should know about

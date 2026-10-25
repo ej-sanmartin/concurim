@@ -44,6 +44,9 @@ test("code mode marks each busy worker's line", async ({ page }) => {
     await page.getByTestId("next").click();
   }
   expect(await marks.count()).toBeGreaterThan(1);
+  // A task that was just started has no known line yet: its body is shaded.
+  const body = page.locator("[data-testid=code] .line[data-shade~=body]");
+  expect(await body.count()).toBeGreaterThan(1);
   await page.waitForTimeout(400);
   await page.screenshot({ path: "/tmp/cz-code.png" });
 });

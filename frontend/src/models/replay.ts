@@ -16,6 +16,16 @@ export interface Source {
   function: string;
 }
 
+/** Where a worker was seen by the background line sampler (approximate). */
+export interface LineSample {
+  /** Index of the last event before the sample. */
+  at: number;
+  actor: string;
+  file: string;
+  line: number;
+  function: string;
+}
+
 export interface TraceEvent {
   schema_version: number;
   event_id: string;
@@ -135,6 +145,9 @@ export interface Replay {
   replay_version: number;
   metadata: Record<string, any>;
   source_paths: string[];
+  /** First and last line of each function, per file (absent in old traces). */
+  code_ranges?: Record<string, [number, number][]>;
+  line_samples?: LineSample[];
   events: TraceEvent[];
   frames: Frame[];
   entities: {

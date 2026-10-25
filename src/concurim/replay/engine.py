@@ -15,6 +15,7 @@ from typing import Any
 from concurim.recorder.events import Event
 from concurim.recorder.events import EventType as E
 from concurim.recorder.serialization import Trace
+from concurim.replay.code_view import function_ranges, split_line_samples
 from concurim.replay.explanations import explain
 from concurim.replay.models import Applied, snapshot
 from concurim.replay.state import Reducer
@@ -57,6 +58,7 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         A JSON-serializable dict with ``metadata``, ``events``, ``frames``,
         ``entities``, ``spans``, ``occupancy``, ``summary`` and ``warnings``.
     """
+    events, samples = split_line_samples(trace.events)
     red = Reducer()
     frames: list[dict[str, Any]] = []
     spans: list[dict[str, Any]] = []
@@ -64,9 +66,9 @@ def build_replay(trace: Trace) -> dict[str, Any]:
     occupancy: dict[str, list[list[int]]] = {}
     journeys: dict[str, list[list[Any]]] = {}
     holds: dict[tuple[str, str], dict[str, Any]] = {}
-    last_index = max(len(trace.events) - 1, 0)
+    last_index = max(len(events) - 1, 0)
 
-    for i, ev in enumerate(trace.events):
+    for i, ev in enumerate(events):
         before = {
             q: (len(s.items), s.unfinished) for q, s in red.queues.items()
         }
@@ -98,16 +100,22 @@ def build_replay(trace: Trace) -> dict[str, Any]:
             f"{trace.metadata.get('dropped_events', '?')} events "
             "were dropped after the buffer limit was reached.",
         )
+    if trace.metadata.get("samples_truncated"):
+        warnings.append(
+            "Line sampling hit its limit: the code view is stale after that."
+        )
     return {
         "replay_version": REPLAY_VERSION,
         "metadata": {k: v for k, v in trace.metadata.items() if k != "sources"},
         "source_paths": sorted(trace.sources),
-        "events": [e.to_dict() for e in trace.events],
+        "events": [e.to_dict() for e in events],
+        "line_samples": samples,
+        "code_ranges": function_ranges(trace.sources),
         "frames": frames,
-        "entities": _entities(red, trace.events, journeys),
+        "entities": _entities(red, events, journeys),
         "spans": spans,
         "occupancy": occupancy,
-        "summary": _summary(trace.events),
+        "summary": _summary(events),
         "warnings": warnings,
     }
 

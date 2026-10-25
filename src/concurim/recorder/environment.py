@@ -44,10 +44,13 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         "and TracedThreadPoolExecutor, when the program uses them",
         "Lifecycle of concurim.TracedThread, when used",
         "Explicit concurim.work() spans and lineage annotations, when used",
+        "With source included: the line each worker is on, sampled every "
+        "few milliseconds (approximate)",
     ]
     not_observed = [
         "CPU scheduling and GIL ownership (not derivable from these events)",
-        "What a worker does between instrumented operations",
+        "What a worker does between instrumented operations, except the "
+        "sampled line (short-lived lines can be missed)",
         "Anything inside child processes; multiprocessing is seen only "
         "through ProcessPoolExecutor, at the sync level and above",
         "threading.Event and Condition operations",

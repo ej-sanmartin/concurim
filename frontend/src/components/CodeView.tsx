@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { buildMarkIndex, marksAt, type Mark } from "../models/marks";
+import { buildMarkIndex, marksAt, shadesByLine, type Shade } from "../models/marks";
 import { nameOf } from "../models/names";
 import { actorOf, type Replay, type TraceEvent } from "../models/replay";
 import type { WorldState } from "../models/states";
@@ -12,17 +12,21 @@ interface Props {
   event: TraceEvent;
 }
 
+const ALPHA: Record<Shade, number> = { line: 30, body: 18, context: 9 };
+
 /** Line background: the worker's colour, or a blend when several share it. */
-function tint(hit: Mark[]): string {
-  const mix = (c: string) => `color-mix(in srgb, ${c} 30%, transparent)`;
-  if (hit.length === 1) return mix(hit[0].color);
-  return `linear-gradient(90deg, ${hit.map((m) => mix(m.color)).join(", ")})`;
+function tint(hit: { color: string; shade: Shade }[]): string {
+  const mix = (h: { color: string; shade: Shade }) =>
+    `color-mix(in srgb, ${h.color} ${ALPHA[h.shade]}%, transparent)`;
+  if (hit.length === 1) return mix(hit[0]);
+  return `linear-gradient(90deg, ${hit.map(mix).join(", ")})`;
 }
 
 /**
  * Read-only code beside the animation. Every active worker gets its current
  * line highlighted in the colour of the item it is working on, so the orb in
- * the graph and the line here match.
+ * the graph and the line here match. When only the function is known (a task
+ * that has just started), its whole body is shaded instead.
  */
 export function CodeView({ replay, world, index, event }: Props) {
   const files = replay.source_paths;
@@ -52,8 +56,7 @@ export function CodeView({ replay, world, index, event }: Props) {
       </div>
     );
   }
-  const byLine = new Map<number, Mark[]>();
-  for (const m of here) byLine.set(m.line, [...(byLine.get(m.line) ?? []), m]);
+  const shades = shadesByLine(here);
   const lines = (text ?? "").split("\n");
   return (
     <div className="codeview" data-testid="codeview">
@@ -71,22 +74,26 @@ export function CodeView({ replay, world, index, event }: Props) {
       </div>
       <div className="code" data-testid="code">
         {lines.map((l, i) => {
-          const hit = byLine.get(i + 1);
+          const hit = shades.get(i + 1);
+          const bar = hit?.find((h) => h.shade !== "context");
+          const chips = here.filter((m) => m.line === i + 1);
           return (
-            <div key={i} className="line" data-hit={hit ? "" : undefined}
-              ref={hit && hit[0] === focus ? focusRef : undefined}
+            <div key={i} className="line" data-hit={bar ? "" : undefined}
+              data-shade={hit ? hit.map((h) => h.shade).join(" ") : undefined}
+              ref={focus?.line === i + 1 ? focusRef : undefined}
               style={hit ? {
                 background: tint(hit),
-                boxShadow: `inset 3px 0 0 ${hit[0].color}`,
+                boxShadow: bar ? `inset 3px 0 0 ${bar.color}` : undefined,
               } : undefined}>
               <span className="ln">{i + 1}</span>
               <span className="src">{l || " "}</span>
-              {hit && (
+              {chips.length > 0 && (
                 <span className="who-chips">
-                  {hit.map((m) => (
+                  {chips.map((m) => (
                     <span key={m.actor} className="who-chip" data-testid="code-mark"
+                      title={m.sampled ? "Sampled: approximate position" : undefined}
                       style={{ background: m.color }}>
-                      {nameOf(replay, m.actor)}
+                      {m.sampled ? "≈ " : ""}{nameOf(replay, m.actor)}
                     </span>
                   ))}
                 </span>
@@ -96,8 +103,10 @@ export function CodeView({ replay, world, index, event }: Props) {
         })}
       </div>
       <p className="muted codeview-note">
-        Each worker is shown at its last recorded location. Pool tasks sit on
-        their function’s first line; blocked calls and awaits on the exact line.
+        Each worker is shown at its last known location. Blocked calls and
+        awaits are exact. A line marked ≈ is sampled every few milliseconds, so
+        it is approximate and very short lines can be missed. A shaded body
+        means only the function is known.
       </p>
     </div>
   );

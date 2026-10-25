@@ -30,6 +30,7 @@ from concurim.recorder.collector import Recorder, mark_internal
 from concurim.recorder.events import EventType as E
 from concurim.recorder.events import Source
 from concurim.recorder.lifecycle import active_recorder, forget_recorder
+from concurim.recorder.sampler import LineSampler, wanted
 
 mark_internal(__file__)
 mark_internal(concurrent.futures.process.__file__)
@@ -44,20 +45,44 @@ PLUMBING_FILES.update(
 # Bound once: the class may be replaced while auto-instrumenting.
 _BasePool = concurrent.futures.ProcessPoolExecutor
 
-# Set in each worker process by ``_child_init``.
+# Set in each worker process by ``_child_init`` and ``_child_call``.
 _CHILD_QUEUE: Any = None
+_CURRENT_OP: str | None = None
 
 
-def _child_init(queue: Any, init: Callable[..., Any] | None, args: Any) -> None:
-    """Runs first in every worker: remember the pipe, then the user's init."""
+def _child_init(
+    queue: Any,
+    init: Callable[..., Any] | None,
+    args: Any,
+    sampling: tuple[str, float] | None,
+) -> None:
+    """Runs first in every worker: remember the pipe, then the user's init.
+
+    ``sampling`` is ``(source root, seconds between samples)`` or ``None``.
+    """
     global _CHILD_QUEUE
     _CHILD_QUEUE = queue
     forget_recorder()  # a forked worker inherits the parent's recorder
+    if sampling is not None:
+        main = threading.get_ident()
+        LineSampler(
+            sampling[0],
+            sampling[1],
+            lambda ident: _CURRENT_OP if ident == main else None,
+            lambda op, file, line, name: _report(
+                "line", op, where=(file, line, name)
+            ),
+        ).start()
     if init is not None:
         init(*args)
 
 
-def _report(kind: str, op: str, error: str | None = None) -> None:
+def _report(
+    kind: str,
+    op: str,
+    error: str | None = None,
+    where: tuple[str, int, str] | None = None,
+) -> None:
     """Send one report to the parent; never let it break the task."""
     queue = _CHILD_QUEUE
     if queue is None:
@@ -65,7 +90,9 @@ def _report(kind: str, op: str, error: str | None = None) -> None:
     name = multiprocessing.current_process().name
     # Recording must never alter or break the program being recorded.
     with contextlib.suppress(Exception):
-        queue.put((kind, op, os.getpid(), name, time.perf_counter_ns(), error))
+        queue.put(
+            (kind, op, os.getpid(), name, time.perf_counter_ns(), error, where)
+        )
 
 
 def _child_call(
@@ -75,12 +102,16 @@ def _child_call(
     kwargs: dict[str, Any],
 ) -> Any:
     """Run ``fn`` in the worker, reporting start and outcome."""
+    global _CURRENT_OP
     _report("started", op)
+    _CURRENT_OP = op  # after "started", so no sample precedes it
     try:
         result = fn(*args, **kwargs)
     except BaseException as error:
+        _CURRENT_OP = None
         _report("failed", op, type(error).__name__)
         raise
+    _CURRENT_OP = None
     _report("finished", op)
     return result
 
@@ -122,7 +153,12 @@ class TracedProcessPoolExecutor(_BasePool):
         if rec is not None and self._cz_on:
             mp_context = mp_context or multiprocessing.get_context()
             self._cz_queue = mp_context.SimpleQueue()
-            initargs = (self._cz_queue, initializer, initargs)
+            sampling = (
+                (rec.root, rec.config.sample_interval_ms / 1000)
+                if wanted(rec.config)
+                else None
+            )
+            initargs = (self._cz_queue, initializer, initargs, sampling)
             initializer = _child_init
         # The stub's overloads cannot express "initializer maybe ours".
         super().__init__(  # ty: ignore[no-matching-overload]
@@ -195,7 +231,7 @@ class TracedProcessPoolExecutor(_BasePool):
     def _cz_drain(self, rec: Recorder) -> None:
         """Turn worker reports into events until told to stop."""
         while (report := self._cz_queue.get()) is not None:
-            kind, op, pid, pname, child_ns, error = report
+            kind, op, pid, pname, child_ns, error, where = report
             known = self._cz_pending.get(op)
             if known is None:
                 continue
@@ -203,6 +239,15 @@ class TracedProcessPoolExecutor(_BasePool):
             actor = rec.remote_actor(str(pid), pname, pid)
             if actor not in self._cz_actors:
                 self._cz_actors.append(actor)
+            if kind == "line":
+                if where is not None:
+                    file, line, function = where
+                    rec.emit_as(
+                        actor,
+                        E.CODE_SAMPLED,
+                        source=Source(rec.display_path(file), line, function),
+                    )
+                continue
             meta: dict[str, Any] = {
                 "name": name,
                 "worker_pid": pid,

@@ -13,6 +13,10 @@ asyncio.
   tasks are drawn like threads; executors like queues of tasks.
 - `ProcessPoolExecutor` (auto at `sync`, managed `TracedProcessPoolExecutor`):
   workers appear as processes; example `process-pool`.
+- Code view: a task that has just started shades its **whole function body**,
+  and a background sampler (`sample_interval_ms`, with source included) then
+  follows the line each thread, asyncio task and pool worker is on (shown `≈`,
+  approximate).
 - Viewer: **fullscreen** animation with media-style controls (`z`), a **Code**
   mode lighting each busy worker's line in its item's colour, and a layout
   polish (orbs inside nodes, no overflowing text).

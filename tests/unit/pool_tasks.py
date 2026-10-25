@@ -1,6 +1,7 @@
 """Functions run by worker processes (they must be importable by name)."""
 
 import os
+import time
 
 GREETING = "unset"
 
@@ -24,3 +25,10 @@ def greeting(_):
 
 def pid(_):
     return os.getpid()
+
+
+def slow(seconds):
+    """Busy for ``seconds``, so a line sampler has something to see."""
+    end = time.monotonic() + seconds
+    while time.monotonic() < end:
+        pass

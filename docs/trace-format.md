@@ -100,7 +100,10 @@ one loop at most one task has an open step at any time.
 
 `thread.registered` (first event seen from a thread), `thread.start.requested`,
 `thread.started`, `thread.finished`, `thread.failed`, `work.started`,
-`work.finished`, `work.failed`, `object.derived` (explicit lineage).
+`work.finished`, `work.failed`, `object.derived` (explicit lineage),
+`code.sampled` (approximate current line of an actor, from the background
+sampler; only with source included. It is not a state change: the replay moves
+these to `line_samples` and leaves them out of `events`).
 
 ## Replay document
 
@@ -111,3 +114,8 @@ locks and semaphores; a waiting actor has `waiting_on: {resource, op}`), an expl
 `{title, text, tone, inferred[]}`, and an optional `motion`. Queue frames carry
 `size` (true occupancy) and at most the first 64 `items`. The same trace
 always produces the same document.
+
+For the code view it also carries `code_ranges` (per source file, the first
+and last line of every function, from parsing the embedded source) and
+`line_samples` (`{at, actor, file, line, function}`, where `at` is the index of
+the last event before the sample).

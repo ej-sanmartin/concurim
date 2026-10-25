@@ -54,8 +54,17 @@ class Recorder:
         self._cwd = self.config.source_root or os.getcwd()
         self._rel_cache: dict[str, str] = {}
         self.source_files: set[str] = set()
+        # For the line sampler: OS thread ident -> actor ids.
+        self.idents: dict[int, str] = {}
+        self.running_task: dict[int, str | None] = {}
+        self.samples_truncated = False
         self._remote: dict[str, str] = {}
         self._redact = [re.compile(p) for p in self.config.redact_patterns]
+
+    @property
+    def root(self) -> str:
+        """Directory that user source files live under."""
+        return self._cwd
 
     # -- identity ---------------------------------------------------------
 
@@ -199,6 +208,7 @@ class Recorder:
         thread = threading.current_thread()
         thread_id = self.ids.new_id("thread")
         self._tls.thread_id = thread_id
+        self.idents[threading.get_ident()] = thread_id
         self._append(
             EventType.THREAD_REGISTERED,
             thread_id,
@@ -312,6 +322,7 @@ class Recorder:
     def set_task(self, task_id: str | None) -> None:
         """Attribute this thread's next events to an asyncio task."""
         self._tls.task_id = task_id
+        self.running_task[threading.get_ident()] = task_id
 
     def new_operation_id(self) -> str:
         """Allocate an id linking the events of one logical operation."""

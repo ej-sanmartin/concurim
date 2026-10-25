@@ -12,6 +12,7 @@ from concurim import __version__
 from concurim.config import RecorderConfig
 from concurim.recorder.collector import Recorder
 from concurim.recorder.environment import coverage_for, environment_info
+from concurim.recorder.sampler import LineSampler, start_sampling
 from concurim.recorder.serialization import MAX_SOURCE_BYTES, write_trace
 
 _active: Recorder | None = None
@@ -54,12 +55,14 @@ class record:  # noqa: N801 - used as a context manager, like ``open``
         self.recorder = Recorder(config or RecorderConfig(**config_kwargs))
         self.program: dict[str, Any] = dict(program or {})
         self._auto: contextlib.AbstractContextManager[None] | None = None
+        self._sampler: LineSampler | None = None
 
     def __enter__(self) -> Recorder:
         global _active
         if _active is not None:
             raise RuntimeError("a Concurim recording is already active")
         _active = self.recorder
+        self._sampler = start_sampling(self.recorder)
         if self.recorder.config.auto != "none":
             from concurim.instrumentation.auto import auto_instrument
 
@@ -71,6 +74,10 @@ class record:  # noqa: N801 - used as a context manager, like ``open``
         self, exc_type: type[BaseException] | None, *_: object
     ) -> None:
         global _active
+        if self._sampler is not None:
+            self._sampler.stop()
+            self.recorder.samples_truncated = self._sampler.exhausted
+            self._sampler = None
         if self._auto is not None:
             self._auto.__exit__(None, None, None)
             self._auto = None
@@ -104,6 +111,7 @@ def build_metadata(
         "event_count": len(events),
         "dropped_events": recorder.dropped,
         "truncated": recorder.dropped > 0,
+        "samples_truncated": recorder.samples_truncated,
         "config": recorder.config.public_dict(),
         "environment": environment_info(),
         "coverage": coverage_for(recorder.config.auto),

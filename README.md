@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/logo.png" alt="Concurim" width="200"/>
+</p>
+
 # Concurim
 
 **See how Python runs together.**

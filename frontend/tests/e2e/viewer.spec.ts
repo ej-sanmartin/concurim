@@ -79,11 +79,12 @@ test("a blocked producer shows as waiting with an accurate explanation", async (
   await expect(page.locator("[data-testid=thread][data-status=waiting]").first()).toBeVisible();
 });
 
-test("source tab highlights the line that triggered the event", async ({ page }) => {
+test("event source opens code on the line that triggered the event", async ({ page }) => {
   await stepUntil(page, "Item enqueued");
-  await page.getByRole("tab", { name: "Source" }).click();
-  const hit = page.locator("[data-testid=source] .line[data-hit]");
-  await expect(hit).toContainText("jobs.put(");
+  await page.getByTestId("open-code").click();
+  await expect(page.getByTestId("codeview")).toBeVisible();
+  const hit = page.locator("[data-testid=code] .line[data-hit]", { hasText: "jobs.put(" });
+  await expect(hit).toBeVisible();
 });
 
 test("selecting an item shows its journey and history", async ({ page }) => {

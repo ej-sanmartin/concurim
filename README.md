@@ -129,7 +129,7 @@ To record a project, install Concurim into the project
 | Pacing | *Explain* slows down blocking events; *Real time* follows recorded gaps (optionally compressing idle time) |
 | Jump | next blocking event, next event for the selection |
 | Many workers | **Group workers** collapses groups of 4+ into one node (automatic above 24); repeating events in the **Log** fold into `×N` |
-| Source | **Source** tab (needs `--include-source`) highlights the event's line |
+| Source | In **Event**, the source location opens **Code** on that line |
 
 The explanation card describes the current event and labels anything inferred.
 Dashed thread borders mean the state is *inferred* (for example "running, not

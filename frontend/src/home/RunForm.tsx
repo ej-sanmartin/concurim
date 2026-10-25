@@ -103,7 +103,7 @@ export function RunForm({ options, onChange, workspace, interpreters }: Props) {
         <input type="checkbox" checked={options.includeSource}
           data-testid="include-source"
           onChange={(e) => set("includeSource", e.target.checked)} />
-        Store source files in the recording (shown in the Source tab)
+        Store source files in the recording (shown in Code)
       </label>
       <label className="check">
         <input type="checkbox" checked={options.preview}

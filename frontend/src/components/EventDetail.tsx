@@ -5,6 +5,20 @@ interface Props {
   event: TraceEvent;
   indexById: Map<string, number>;
   onSeek: (i: number) => void;
+  onOpenCode: () => void;
+}
+
+/** Location of the event, as a shortcut into Code mode. */
+function sourceCell(event: TraceEvent, onOpenCode: () => void): React.ReactNode {
+  const src = event.source;
+  if (!src) return "not recorded";
+  const where = `${src.file}:${src.line} in ${src.function}`;
+  return (
+    <button className="link" data-testid="open-code" title="Show in Code"
+      onClick={onOpenCode}>
+      {where}
+    </button>
+  );
 }
 
 function fmtTime(ns: number): string {
@@ -12,7 +26,7 @@ function fmtTime(ns: number): string {
 }
 
 /** Raw fields of the current event; every value is rendered as text. */
-export function EventDetail({ replay, event, indexById, onSeek }: Props) {
+export function EventDetail({ replay, event, indexById, onSeek, onOpenCode }: Props) {
   const who = actorOf(event);
   const thread = who ? replay.entities.threads[who] : null;
   const queue = event.resource_id
@@ -33,12 +47,7 @@ export function EventDetail({ replay, event, indexById, onSeek }: Props) {
         </button>
       ),
     ],
-    [
-      "source",
-      event.source
-        ? `${event.source.file}:${event.source.line} in ${event.source.function}`
-        : "not recorded",
-    ],
+    ["source", sourceCell(event, onOpenCode)],
   ];
   return (
     <div className="detail" data-testid="event-detail">

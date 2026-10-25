@@ -87,15 +87,16 @@ code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
 .tabpanel h3 { margin: 0 0 6px; font-size: 15px; }
 .tabpanel h3 small { color: var(--muted); font-weight: 400; margin-left: 6px; }
 .tabpanel h4 { margin: 14px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-.link { background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer; text-align: left; }
+.link {
+  background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer;
+  text-align: left; font: inherit; white-space: normal;
+}
 .link:hover { text-decoration: underline; }
 ul.history, ol.journey { list-style: none; margin: 0; padding: 0; }
 [data-future] { opacity: 0.45; }
 [data-current] { font-weight: 600; }
 .warning { color: var(--c-waiting); }
 
-.source { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
-.source-head { color: var(--muted); margin-bottom: 6px; font-family: inherit; }
 .code { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; overflow: auto; max-height: 100%; }
 .line { display: flex; white-space: pre; }
 .line .ln { width: 36px; text-align: right; padding-right: 10px; color: var(--muted); flex: none; user-select: none; }

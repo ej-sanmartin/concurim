@@ -5,7 +5,6 @@ import { EventDetail } from "./components/EventDetail";
 import { EventLog } from "./components/EventLog";
 import { Explanation } from "./components/Explanation";
 import { Inspector } from "./components/Inspector";
-import { SourcePanel } from "./components/SourcePanel";
 import { Timeline } from "./components/Timeline";
 import { TraceInfo } from "./components/TraceInfo";
 import { computeLayout } from "./models/layout";
@@ -17,13 +16,13 @@ import { useKeyboard, type KeyActions } from "./playback/useKeyboard";
 import { usePlayback } from "./playback/usePlayback";
 import { FlowView } from "./views/FlowView";
 
-type Tab = "event" | "source" | "inspect" | "log" | "info";
+type Tab = "event" | "inspect" | "log" | "info";
 type Mode = "animation" | "timeline" | "code";
 const MODES: [Mode, string][] = [
   ["animation", "Animation"], ["code", "Code"], ["timeline", "Timeline"],
 ];
 const TABS: [Tab, string][] = [
-  ["event", "Event"], ["source", "Source"], ["inspect", "Inspect"],
+  ["event", "Event"], ["inspect", "Inspect"],
   ["log", "Log"], ["info", "Trace"],
 ];
 const MODE_KEY = "concurim-mode";
@@ -165,8 +164,8 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
           </nav>
           <div className="tabpanel">
             {tab === "event" && <EventDetail replay={replay} event={event}
-              indexById={indexById} onSeek={pb.seek} />}
-            {tab === "source" && <SourcePanel replay={replay} event={event} />}
+              indexById={indexById} onSeek={pb.seek}
+              onOpenCode={() => setMode("code")} />}
             {tab === "inspect" && <Inspector replay={replay}
               world={states[pb.index]} index={pb.index} selection={selection}
               onSeek={pb.seek} />}

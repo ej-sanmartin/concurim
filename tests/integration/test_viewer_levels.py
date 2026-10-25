@@ -24,6 +24,19 @@ LOCKS = textwrap.dedent(
     """
 )
 
+PROCS = textwrap.dedent(
+    """
+    from concurrent.futures import ProcessPoolExecutor
+
+    def square(n):
+        return n * n
+
+    if __name__ == "__main__":
+        with ProcessPoolExecutor(max_workers=2) as pool:
+            print(sum(pool.map(square, range(6))))
+    """
+)
+
 ASYNC = textwrap.dedent(
     """
     import asyncio
@@ -93,3 +106,14 @@ def test_unknown_level_is_rejected(client):
     ws = client.upload({"main.py": "print(1)\n"})
     body = {"workspace_id": ws["id"], "entry": ws["suggested"], "auto": "x"}
     assert client.post_json("/api/runs/plan", body)[0] == 400
+
+
+def test_sync_level_records_process_pool_workers_via_the_viewer(client):
+    replay = record(client, PROCS, "sync")
+    assert replay["warnings"] == []
+    entities = replay["entities"]
+    workers = [
+        t for t in entities["threads"].values() if t["kind"] == "process"
+    ]
+    assert 1 <= len(workers) <= 2
+    assert [q["kind"] for q in entities["queues"].values()] == ["executor"]

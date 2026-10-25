@@ -54,6 +54,7 @@ class Recorder:
         self._cwd = self.config.source_root or os.getcwd()
         self._rel_cache: dict[str, str] = {}
         self.source_files: set[str] = set()
+        self._remote: dict[str, str] = {}
         self._redact = [re.compile(p) for p in self.config.redact_patterns]
 
     # -- identity ---------------------------------------------------------
@@ -250,6 +251,60 @@ class Recorder:
                 )
             )
         return event_id
+
+    def remote_actor(self, key: str, name: str, ident: int) -> str:
+        """Logical actor for a worker in another process (registered once).
+
+        Args:
+            key: Stable key for the worker, such as its pid.
+            name: Display name.
+            ident: The worker's OS process id.
+        """
+        with self._reg_lock:
+            actor = self._remote.get(key)
+            if actor is not None:
+                return actor
+            actor = self._remote[key] = self.ids.new_id("process")
+        self._append(
+            EventType.THREAD_REGISTERED,
+            actor,
+            None,
+            None,
+            None,
+            None,
+            None,
+            {
+                "name": name,
+                "ident": ident,
+                "is_main": False,
+                "daemon": True,
+                "actor_kind": "process",
+            },
+        )
+        return actor
+
+    def emit_as(
+        self,
+        actor: str,
+        event_type: str,
+        *,
+        resource_id: str | None = None,
+        object_id: str | None = None,
+        operation_id: str | None = None,
+        source: Source | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> str | None:
+        """Record an event on behalf of ``actor`` (a remote worker)."""
+        return self._append(
+            event_type,
+            actor,
+            resource_id,
+            object_id,
+            operation_id,
+            None,
+            source,
+            metadata,
+        )
 
     def set_task(self, task_id: str | None) -> None:
         """Attribute this thread's next events to an asyncio task."""

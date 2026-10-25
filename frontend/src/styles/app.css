@@ -172,3 +172,35 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 @media (prefers-reduced-motion: reduce) {
   .pulse, .edge-active .react-flow__edge-path { animation: none; }
 }
+
+/* ---- code mode ---- */
+.app[data-mode="code"] .stage { grid-template-columns: minmax(0, 1fr) minmax(420px, 44%); }
+.codeview { display: flex; flex-direction: column; min-height: 0; flex: 1; gap: 6px; font-size: 12px; }
+.codeview-head { display: flex; align-items: center; gap: 10px; color: var(--muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+.codeview-head select { background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; }
+.codeview .code { flex: 1; min-height: 0; max-height: none; font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+.codeview .line { align-items: center; min-height: 18px; }
+.codeview .line .src { flex: 1; }
+.codeview .who-chips { display: flex; gap: 4px; padding: 0 8px; flex: none; }
+.who-chip { color: var(--token-ink); font: 600 10px/16px -apple-system, system-ui, sans-serif; border-radius: 8px; padding: 0 7px; white-space: nowrap; }
+.codeview-note { margin: 0; font-size: 11px; }
+.codeview-empty { padding: 8px 4px; }
+
+/* ---- fullscreen animation ---- */
+.app[data-fullscreen] { grid-template-rows: minmax(0, 1fr) auto; background: var(--bg); }
+.app[data-fullscreen] > .top, .app[data-fullscreen] > .timeline { display: none; }
+.app[data-fullscreen]:not([data-mode="code"]) .side { display: none; }
+.app[data-fullscreen]:not([data-mode="code"]) .stage { grid-template-columns: minmax(0, 1fr); }
+.app[data-fullscreen] .canvas { padding: 0; }
+.app[data-fullscreen] .flow .react-flow { border-radius: 0; }
+.app[data-fullscreen] .flow-toolbar { top: 14px; left: 14px; }
+.caption {
+  position: absolute; left: 20px; bottom: 40px; z-index: 6;
+  width: min(520px, calc(100% - 40px)); pointer-events: none;
+}
+.caption .card { background: color-mix(in srgb, var(--panel) 92%, transparent); backdrop-filter: blur(6px); }
+.exit-fs {
+  position: absolute; top: 14px; right: 14px; z-index: 7; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px;
+}
+.controls .fs-toggle[aria-pressed="true"] { background: var(--accent); color: var(--token-ink); border-color: var(--accent); }

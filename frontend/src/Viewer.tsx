@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CodeView } from "./components/CodeView";
 import { Controls } from "./components/Controls";
 import { EventDetail } from "./components/EventDetail";
 import { EventLog } from "./components/EventLog";
@@ -17,7 +18,10 @@ import { usePlayback } from "./playback/usePlayback";
 import { FlowView } from "./views/FlowView";
 
 type Tab = "event" | "source" | "inspect" | "log" | "info";
-type Mode = "animation" | "timeline";
+type Mode = "animation" | "timeline" | "code";
+const MODES: [Mode, string][] = [
+  ["animation", "Animation"], ["code", "Code"], ["timeline", "Timeline"],
+];
 const TABS: [Tab, string][] = [
   ["event", "Event"], ["source", "Source"], ["inspect", "Inspect"],
   ["log", "Log"], ["info", "Trace"],
@@ -25,7 +29,8 @@ const TABS: [Tab, string][] = [
 const MODE_KEY = "concurim-mode";
 
 function initialMode(): Mode {
-  return localStorage.getItem(MODE_KEY) === "timeline" ? "timeline" : "animation";
+  const saved = localStorage.getItem(MODE_KEY);
+  return saved === "timeline" || saved === "code" ? saved : "animation";
 }
 
 interface Props {
@@ -52,6 +57,25 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
   const [tab, setTab] = useState<Tab>("event");
   const [mode, setModeState] = useState<Mode>(initialMode);
   const [fitTick, setFitTick] = useState(0);
+  const [fullscreen, setFs] = useState(false);
+  const appRef = useRef<HTMLDivElement | null>(null);
+
+  // Real browser fullscreen when allowed; otherwise the same layout in-page.
+  const setFullscreen = useCallback((on: boolean) => {
+    setFs(on);
+    if (on) appRef.current?.requestFullscreen?.().catch(() => undefined);
+    else if (document.fullscreenElement) document.exitFullscreen().catch(() => undefined);
+  }, []);
+  useEffect(() => {
+    const onChange = () => { if (!document.fullscreenElement) setFs(false); };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+  // The canvas changes size: fit the graph again once it has settled.
+  useEffect(() => {
+    const id = window.setTimeout(() => setFitTick((t) => t + 1), 120);
+    return () => window.clearTimeout(id);
+  }, [fullscreen, mode]);
 
   const setMode = (m: Mode) => {
     setModeState(m);
@@ -62,6 +86,8 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
     blocking: (dir) => jump(nextBlocking(replay.events, pb.index, dir)),
     selection: (dir) => jump(nextForSelection(replay.events, pb.index, selection, dir)),
     fit: () => setFitTick((t) => t + 1),
+    fullscreen: () => setFullscreen(!fullscreen),
+    escape: () => { if (fullscreen) setFullscreen(false); },
   };
   useKeyboard(pb, replay.events.length, actions);
 
@@ -73,8 +99,8 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
   };
   const meta = replay.metadata;
   return (
-    <div className="app" data-mode={mode}
-      style={{ "--dur": `${pb.motionMs}ms` } as React.CSSProperties}>
+    <div className="app" data-mode={mode} data-fullscreen={fullscreen || undefined}
+      ref={appRef} style={{ "--dur": `${pb.motionMs}ms` } as React.CSSProperties}>
       <header className="top">
         <div className="brand">
           <button className="link brand-home" onClick={onHome} data-testid="home"
@@ -84,10 +110,10 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
           <span>See how Python runs together</span>
         </div>
         <div className="mode" role="radiogroup" aria-label="View mode">
-          {(["animation", "timeline"] as Mode[]).map((m) => (
+          {MODES.map(([m, name]) => (
             <button key={m} role="radio" aria-checked={mode === m}
               data-testid={`mode-${m}`} onClick={() => setMode(m)}>
-              {m === "animation" ? "Animation" : "Timeline"}
+              {name}
             </button>
           ))}
         </div>
@@ -102,13 +128,22 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
       </header>
       <main className="stage">
         <section className="canvas" aria-label="Execution canvas">
-          {mode === "animation" ? (
+          {mode !== "timeline" ? (
             <>
               <FlowView replay={replay} layout={layout} world={states[pb.index]}
                 frame={frame} event={event} selection={selection}
                 onSelect={select} motionMs={pb.motionMs} theme={theme}
                 fitTick={fitTick} />
               <Legend />
+              {fullscreen && mode === "animation" && (
+                <div className="caption">
+                  <Explanation frame={frame} event={event} />
+                </div>
+              )}
+              {fullscreen && (
+                <button className="exit-fs" data-testid="exit-fullscreen"
+                  onClick={() => setFullscreen(false)}>⤡ Exit fullscreen</button>
+              )}
             </>
           ) : (
             <Timeline variant="full" replay={replay} layout={layout}
@@ -118,6 +153,10 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
         </section>
         <aside className="side">
           <Explanation frame={frame} event={event} />
+          {mode === "code" ? (
+            <CodeView replay={replay} world={states[pb.index]} index={pb.index}
+              event={event} />
+          ) : <>
           <nav className="tabs" role="tablist">
             {TABS.map(([id, name]) => (
               <button key={id} role="tab" aria-selected={tab === id}
@@ -134,14 +173,16 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
             {tab === "log" && <EventLog replay={replay} index={pb.index} onSeek={pb.seek} />}
             {tab === "info" && <TraceInfo replay={replay} />}
           </div>
+          </>}
         </aside>
       </main>
-      {mode === "animation" && (
+      {mode !== "timeline" && (
         <Timeline replay={replay} layout={layout} index={pb.index} onSeek={pb.seek} />
       )}
       <Controls pb={pb} total={replay.events.length} onToggleTheme={onToggleTheme}
         onJumpBlocking={actions.blocking} onJumpSelection={actions.selection}
-        hasSelection={!!selection} />
+        hasSelection={!!selection} fullscreen={fullscreen}
+        onToggleFullscreen={() => setFullscreen(!fullscreen)} />
     </div>
   );
 }

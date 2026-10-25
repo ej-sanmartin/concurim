@@ -22,6 +22,13 @@ def active_recorder() -> Recorder | None:
     return _active
 
 
+def forget_recorder() -> None:
+    """Make this process stop recording (used by forked worker processes,
+    which inherit the parent's recorder but must not buffer events)."""
+    global _active
+    _active = None
+
+
 class record:  # noqa: N801 - used as a context manager, like ``open``
     """Record instrumented activity inside a ``with`` block.
 

@@ -8,12 +8,16 @@ export interface KeyActions {
   /** Jump to the next/previous event of the selected resource. */
   selection: (dir: 1 | -1) => void;
   fit: () => void;
+  /** Toggle fullscreen (z). */
+  fullscreen: () => void;
+  /** Leave fullscreen when the browser did not (Escape). */
+  escape: () => void;
 }
 
 /**
  * Space play/pause, arrows step (Shift = 10), Home/End, [ ] speed,
  * b/B next/previous blocking event, n/N next/previous event for the
- * selection, f fit the graph to the view.
+ * selection, f fit the graph to the view, z fullscreen, Escape leaves it.
  */
 export function useKeyboard(pb: Playback, total: number, act: KeyActions): void {
   useEffect(() => {
@@ -35,6 +39,8 @@ export function useKeyboard(pb: Playback, total: number, act: KeyActions): void 
         case "b": case "B": act.blocking(dir); break;
         case "n": case "N": act.selection(dir); break;
         case "f": act.fit(); break;
+        case "z": act.fullscreen(); break;
+        case "Escape": act.escape(); return;
         default: return;
       }
       e.preventDefault();

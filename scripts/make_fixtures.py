@@ -19,7 +19,13 @@ from concurim.recorder.serialization import load_trace
 from concurim.replay.engine import build_replay
 from concurim.runner import run_recorded
 
-SAMPLES = ("lock-contention", "semaphore", "thread-pool", "asyncio-tasks")
+SAMPLES = (
+    "lock-contention",
+    "semaphore",
+    "thread-pool",
+    "asyncio-tasks",
+    "process-pool",
+)
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "frontend" / "tests" / "fixtures"
 

@@ -16,9 +16,9 @@ Items 5 and 4 are queued (the front is on the right), consumers are working on
 in hand.*
 
 > **Status: 0.1 (alpha).** Threads, `queue.Queue`, locks, semaphores,
-> `ThreadPoolExecutor` and asyncio (tasks, queues, locks), recorded
-> automatically or with Concurim-managed primitives. Events/conditions and
-> process pools are planned. See
+> `ThreadPoolExecutor`, `ProcessPoolExecutor` and asyncio (tasks, queues,
+> locks), recorded automatically or with Concurim-managed primitives.
+> Events/conditions are planned. See
 > [what is and is not observed](docs/limitations.md).
 
 ## Try it
@@ -49,7 +49,7 @@ On the home screen you can:
 | Basic (default) | Nothing patched | Only what you instrument |
 | Threads | Records `threading.Thread` start/run/finish | Thread lifecycles |
 | Threads + queues | Also swaps `queue.Queue` while recording (reversed on exit) | Queue operations and item identity |
-| + locks, semaphores, pools | Also swaps `threading.Lock/RLock/Semaphore/BoundedSemaphore` and `ThreadPoolExecutor` | Who holds or waits for each lock, permits, tasks flowing through a pool |
+| + locks, semaphores, pools | Also swaps `threading.Lock/RLock/Semaphore/BoundedSemaphore` and `ThreadPoolExecutor` / `ProcessPoolExecutor` | Who holds or waits for each lock, permits, tasks flowing through a pool |
 | + asyncio | Also patches task creation/stepping and `asyncio.Queue/Lock/Semaphore` | Tasks as actors, awaits on queues and locks |
 | Managed | You use `TracedQueue` / `TracedLock` / `TracedThreadPoolExecutor` / ... | Full detail incl. lineage (`derived_from`) |
 
@@ -120,7 +120,8 @@ To record a project, install Concurim into the project
 | Seek | scrub bar, event number box, or click/drag the timeline |
 | Inspect | click a thread or task, a queue or pool, a lock, or an item token |
 | Drag / zoom | drag nodes, scroll to zoom; layout is remembered. **Fit** / **Reset layout** in the toolbar, `f` fits |
-| Views | **Animation** (understanding) or **Timeline** (dense, technical); same position, click an event then *Show in animation* |
+| Views | **Animation** (understanding), **Code** (the animation beside the source: each busy worker's line is lit in its item's colour; needs `--include-source`) or **Timeline** (dense, technical); same position, click an event then *Show in animation* |
+| Fullscreen | ⤢ in the transport bar or `z`; the playback controls stay, `Esc`, `z` or *Exit fullscreen* returns |
 | Pacing | *Explain* slows down blocking events; *Real time* follows recorded gaps (optionally compressing idle time) |
 | Jump | next blocking event, next event for the selection |
 | Many workers | **Group workers** collapses groups of 4+ into one node (automatic above 24); repeating events in the **Log** fold into `×N` |

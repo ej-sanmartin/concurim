@@ -1,5 +1,5 @@
 import type { Point } from "../models/layout";
-import { NODE_H, slotPoint } from "../models/layout";
+import { HAND_W, NODE_H, NODE_W, slotPoint } from "../models/layout";
 import type { WorldState } from "../models/states";
 
 /** Where things are right now (centers), including user-dragged positions. */
@@ -48,5 +48,10 @@ export function objectPoint(
   const t = geo.threads[o.at];
   if (!t) return null;
   const h = hands.get(id) ?? { i: 0, n: 1 };
-  return { x: t.x + (h.i - (h.n - 1) / 2) * 38, y: t.y - NODE_H / 2 - 26 };
+  // Inside the node, in its right-hand strip; several items stack vertically.
+  const gap = h.n > 1 ? Math.min(38, (NODE_H - 52) / (h.n - 1)) : 0;
+  return {
+    x: t.x + NODE_W / 2 - HAND_W / 2 - 4,
+    y: t.y + (h.i - (h.n - 1) / 2) * gap,
+  };
 }

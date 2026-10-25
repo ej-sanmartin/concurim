@@ -48,10 +48,29 @@
 - What a worker does between instrumented calls. Thread status "running (not
   blocked)" is therefore **inferred** and drawn with a dashed border.
 - Which item `task_done()` refers to, unless `object_id=` is passed.
-- `multiprocessing`/`ProcessPoolExecutor`, `threading.Event`, `Condition`,
+- `multiprocessing` (`Pool`, `Process`), `threading.Event`, `Condition`,
   `Barrier`, `asyncio.Event`/`Condition` (later milestones).
 - `LifoQueue`/`PriorityQueue` (items are wrapped in an envelope, which would
   break priority comparison); `SimpleQueue` (no hooks).
+
+## ProcessPoolExecutor
+
+- Workers are shown as processes (`SpawnProcess-N`); tasks flow through the
+  pool like thread-pool tasks. Only start, finish and failure of each task are
+  seen; **nothing inside a worker** is observed.
+- Timestamps are taken in the parent when a worker's report arrives, so they
+  can lag the real moment slightly. The worker's own clock is kept as
+  `child_ns` but never compared across processes.
+- Tasks, arguments and results are pickled by Python as usual; the pool's
+  internal threads and queues are hidden.
+- Other process APIs (`multiprocessing.Pool`, `Process`) are not covered.
+
+## Code view
+
+- Lines come from recorded source locations: a pool task or thread target is
+  placed on its function's first line (the recorder does not trace line by
+  line); blocked calls and awaits sit on the exact line.
+- Needs source in the trace (`--include-source`); otherwise a hint is shown.
 
 ## Behavior you should know about
 
@@ -89,6 +108,6 @@
 
 ## Roadmap (not implemented)
 
-Events/conditions/barriers · process pools and a GIL/free-threaded
+Events/conditions/barriers · `multiprocessing.Pool` and a GIL/free-threaded
 comparison · layout modes, lineage browser, video export (Manim stays
 optional).

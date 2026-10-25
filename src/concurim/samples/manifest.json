@@ -106,6 +106,19 @@
       "auto": "sync"
     },
     {
+      "id": "process-pool",
+      "title": "ProcessPoolExecutor",
+      "observability": "sync",
+      "summary": "Eight CPU-bound tasks run in three worker processes.",
+      "watch": [
+        "Each worker is a separate process, drawn like a thread",
+        "Tasks move from the pool's queue to a worker and back out when done"
+      ],
+      "source": "process_pool.py",
+      "trace": "process-pool.concurim",
+      "auto": "sync"
+    },
+    {
       "id": "asyncio-tasks",
       "title": "Asyncio task switching",
       "observability": "asyncio",
@@ -136,10 +149,6 @@
     {
       "title": "Events and conditions",
       "needs": "event and condition instrumentation"
-    },
-    {
-      "title": "Process pools",
-      "needs": "multiprocessing support"
     }
   ]
 }

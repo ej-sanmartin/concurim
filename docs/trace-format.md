@@ -45,6 +45,13 @@ Schema: [`src/concurim/schema/event.schema.json`](../src/concurim/schema/event.s
 Cross-process ordering is **not** assumed: only per-process `sequence` and
 explicit `caused_by` edges are reliable.
 
+### Pool metadata
+
+`thread.registered` carries `actor_kind` (`thread`, `task`, `process`).
+For `ProcessPoolExecutor`, `executor.created` has `pool: process`; worker
+events carry `worker_pid`, and `child_ns` holds the worker's own monotonic
+clock (informational; ordering uses the parent's receive time).
+
 ### Queue events
 
 `queue.created`, `queue.put.{started,blocked,completed,timeout,failed}`,

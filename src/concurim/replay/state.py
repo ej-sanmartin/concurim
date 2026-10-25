@@ -16,6 +16,7 @@ from concurim.replay.models import (
     QueueState,
     SyncState,
     ThreadState,
+    actor_kind,
 )
 from concurim.replay.models import (
     resume as _resume,
@@ -55,7 +56,7 @@ class Reducer:
             th = self.threads[actor] = ThreadState(
                 actor,
                 str(ev.metadata.get("name", actor)),
-                kind="task" if ev.task_id else "thread",
+                kind=actor_kind(ev.task_id, ev.metadata),
             )
         app.threads.add(th.id)
         return th

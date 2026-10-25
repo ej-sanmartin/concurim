@@ -44,7 +44,7 @@ export interface ThreadState {
   waiting_on: { resource: string; op: string } | null;
   holding: string[];
   work: string | null;
-  kind: "thread" | "task";
+  kind: "thread" | "task" | "process";
 }
 
 export interface BlockedOp {
@@ -140,7 +140,7 @@ export interface Replay {
   entities: {
     threads: Record<
       string,
-      { id: string; name: string; kind: "thread" | "task"; first: number; last: number }
+      { id: string; name: string; kind: "thread" | "task" | "process"; first: number; last: number }
     >;
     queues: Record<
       string,

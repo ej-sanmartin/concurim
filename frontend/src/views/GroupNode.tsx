@@ -15,7 +15,8 @@ export function GroupNode({ data }: NodeProps<GroupNodeType>) {
     counts.set(st, (counts.get(st) ?? 0) + 1);
   }
   const kinds = new Set(data.members.map((m) => replay.entities.threads[m].kind));
-  const noun = kinds.size === 1 && kinds.has("task") ? "tasks" : "threads";
+  const only = kinds.size === 1 ? [...kinds][0] : "thread";
+  const noun = { thread: "threads", task: "tasks", process: "processes" }[only];
   return (
     <div className="fnode group" data-testid="group"
       style={{ width: GROUP_W_NODE, height: GROUP_H_NODE }}>

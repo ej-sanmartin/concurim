@@ -27,17 +27,19 @@ export interface Group extends Point {
 
 export type Role = "producer" | "consumer" | "stage" | "other";
 
-export const NODE_W = 150;
-export const NODE_H = 78;
+export const NODE_W = 210;
+export const NODE_H = 100;
+/** Right-hand strip of a worker node where the items it holds are drawn. */
+export const HAND_W = 46;
 export const SYNC_W = 190;
 export const SYNC_H = 84;
-export const GROUP_W_NODE = 170;
-export const GROUP_H_NODE = 86;
+export const GROUP_W_NODE = NODE_W;
+export const GROUP_H_NODE = NODE_H;
 /** Groups with at least this many members can be collapsed. */
 export const GROUP_MIN = 4;
 const SLOT = 46;
 const MAX_SLOTS = 8;
-const GROUP_W = 230;
+const GROUP_W = 270;
 const PAD = 40;
 const ROW = 134;
 const SYNC_BAND = 150;

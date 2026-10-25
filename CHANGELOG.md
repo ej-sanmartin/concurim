@@ -11,6 +11,11 @@ asyncio.
   `TracedSemaphore`, `TracedBoundedSemaphore`, `TracedThreadPoolExecutor`,
   `TracedAsync*`. Replay explains who holds or waits for each lock; asyncio
   tasks are drawn like threads; executors like queues of tasks.
+- `ProcessPoolExecutor` (auto at `sync`, managed `TracedProcessPoolExecutor`):
+  workers appear as processes; example `process-pool`.
+- Viewer: **fullscreen** animation with media-style controls (`z`), a **Code**
+  mode lighting each busy worker's line in its item's colour, and a layout
+  polish (orbs inside nodes, no overflowing text).
 - Five more examples (lock contention, semaphore, thread pool, asyncio tasks,
   asyncio queue); queue items now keep their identity at `queues`.
 - **Group workers** and `×N` folding of repeating log events.

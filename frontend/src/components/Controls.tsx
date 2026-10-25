@@ -9,11 +9,14 @@ interface Props {
   onJumpSelection: (dir: 1 | -1) => void;
   /** Whether something is selected (enables jumping between its events). */
   hasSelection: boolean;
+  fullscreen: boolean;
+  onToggleFullscreen: () => void;
 }
 
 /** Transport bar: seek ends, step, play/pause, jumps, pace, speed, scrubber. */
 export function Controls({
   pb, total, onToggleTheme, onJumpBlocking, onJumpSelection, hasSelection,
+  fullscreen, onToggleFullscreen,
 }: Props) {
   const last = total - 1;
   return (
@@ -76,6 +79,12 @@ export function Controls({
         </select>
       </label>
       <button onClick={onToggleTheme} title="Toggle theme" aria-label="Toggle theme">◐</button>
+      <button onClick={onToggleFullscreen} data-testid="fullscreen"
+        aria-pressed={fullscreen} className="fs-toggle"
+        title={fullscreen ? "Exit fullscreen (z or Esc)" : "Fullscreen animation (z)"}
+        aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen"}>
+        {fullscreen ? "⤡" : "⤢"}
+      </button>
     </div>
   );
 }

@@ -17,6 +17,7 @@ async function goHome(page: Page) {
 const SAMPLES = [
   "producer-consumer", "backpressure", "shutdown", "plain-threads", "plain-queues",
   "lock-contention", "semaphore", "thread-pool", "asyncio-tasks", "asyncio-queue",
+  "process-pool",
 ];
 
 test("home lists the bundled examples and says which are planned", async ({ page }) => {

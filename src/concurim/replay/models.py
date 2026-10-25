@@ -10,6 +10,14 @@ from typing import Any
 ITEMS_HEAD = 64  # queued item ids kept per frame
 
 
+def actor_kind(task_id: str | None, metadata: dict[str, Any]) -> str:
+    """``task`` for asyncio tasks, ``process`` for pool workers, else
+    ``thread``."""
+    if task_id:
+        return "task"
+    return "process" if metadata.get("actor_kind") == "process" else "thread"
+
+
 @dataclass
 class ThreadState:
     id: str
@@ -21,7 +29,7 @@ class ThreadState:
     waiting_on: dict[str, str] | None = None
     holding: list[str] = field(default_factory=list)
     work: str | None = None
-    kind: str = "thread"  # thread | task (asyncio)
+    kind: str = "thread"  # thread | task (asyncio) | process (pool worker)
 
 
 @dataclass

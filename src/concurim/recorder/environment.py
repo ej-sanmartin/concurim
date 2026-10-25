@@ -48,7 +48,8 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
     not_observed = [
         "CPU scheduling and GIL ownership (not derivable from these events)",
         "What a worker does between instrumented operations",
-        "Child processes (multiprocessing is not instrumented yet)",
+        "Anything inside child processes; multiprocessing is seen only "
+        "through ProcessPoolExecutor, at the sync level and above",
         "threading.Event and Condition operations",
     ]
     if rank >= 1:
@@ -72,8 +73,10 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         )
     if rank >= 3:
         observed.append(
-            "threading Lock, RLock, Semaphore, BoundedSemaphore and "
-            "ThreadPoolExecutor created by the program's own code"
+            "threading Lock, RLock, Semaphore, BoundedSemaphore, "
+            "ThreadPoolExecutor and ProcessPoolExecutor (submit, and task "
+            "start/end as reported by each worker process) created by the "
+            "program's own code"
         )
         not_observed.append(
             "Locks and executors created inside libraries or the standard "

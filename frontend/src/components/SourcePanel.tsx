@@ -1,29 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { Replay, TraceEvent } from "../models/replay";
-
-const cache = new Map<string, string>();
+import { useSource } from "./useSource";
 
 /** Source file for the current event with its line highlighted. */
 export function SourcePanel({ replay, event }: { replay: Replay; event: TraceEvent }) {
   const src = event.source;
   const embedded = !!src && replay.source_paths.includes(src.file);
-  const [text, setText] = useState<string | null>(null);
+  const text = useSource(src?.file ?? null, embedded);
   const lineRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    if (!src || !embedded) return setText(null);
-    const hit = cache.get(src.file);
-    if (hit !== undefined) return setText(hit);
-    let alive = true;
-    fetch(`api/source?path=${encodeURIComponent(src.file)}`)
-      .then((r) => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
-      .then((t) => {
-        cache.set(src.file, t);
-        if (alive) setText(t);
-      })
-      .catch(() => alive && setText(null));
-    return () => { alive = false; };
-  }, [src?.file, embedded]);
 
   useEffect(() => {
     lineRef.current?.scrollIntoView({ block: "center", behavior: "auto" });

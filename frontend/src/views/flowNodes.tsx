@@ -53,14 +53,17 @@ export function ThreadNode({ id, data }: NodeProps<ThreadNodeType>) {
       <Handles />
       <Handle type="source" position={Position.Bottom} id="down" isConnectable={false} />
       <span className="tiny">
-        {replay.entities.threads[id].kind === "task" ? `task · ${data.role}` : data.role}
+        {replay.entities.threads[id].kind === "thread"
+          ? data.role : `${replay.entities.threads[id].kind} · ${data.role}`}
       </span>
       <span className="row">
         <i className={`dot${state?.status === "waiting" ? " pulse" : ""}`}
           style={{ background: color }} />
-        <b className="node-title">{replay.entities.threads[id].name}</b>
+        <b className="node-title" title={replay.entities.threads[id].name}>
+          {replay.entities.threads[id].name}
+        </b>
       </span>
-      <span className="node-sub">
+      <span className="node-sub" title={state ? waitText(state, replay) : undefined}>
         {state ? waitText(state, replay) : "not seen yet"}
       </span>
     </div>
@@ -89,7 +92,7 @@ export function QueueNode({ id, data }: NodeProps<QueueNodeType>) {
       style={{ width: data.w, height: QUEUE_H }}
     >
       <Handles />
-      <span className="q-title node-title">
+      <span className="q-title node-title" title={info.name}>
         {info.name}
       </span>
       <span className="q-front tiny">front →</span>

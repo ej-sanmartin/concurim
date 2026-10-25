@@ -10,7 +10,7 @@ def _created(n, ev, f):
     workers = ev.metadata.get("max_workers")
     return (
         "Executor created",
-        f"{n.q} was created with up to {workers} worker thread(s). Tasks "
+        f"{n.q} was created with up to {workers} worker(s). Tasks "
         "wait in its queue until a worker is free.",
         "info",
     )

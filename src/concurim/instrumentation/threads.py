@@ -18,6 +18,10 @@ from concurim.recorder.lifecycle import active_recorder
 mark_internal(__file__)
 mark_internal(threading.__file__)
 
+# Threads whose entry point is defined in one of these files are plumbing
+# (an executor's manager thread, a queue's feeder), not part of the workload.
+PLUMBING_FILES: set[str] = set()
+
 
 def observe_thread(thread: threading.Thread) -> None:
     """Record ``thread``'s start request, start, finish or failure.
@@ -33,13 +37,16 @@ def observe_thread(thread: threading.Thread) -> None:
     rec = active_recorder()
     if rec is None or getattr(thread, "_cz_observed", False):
         return
+    target = getattr(thread, "_target", None) or type(thread).run
+    code = getattr(target, "__code__", None)
+    if code is not None and code.co_filename in PLUMBING_FILES:
+        return
     thread._cz_observed = True  # ty: ignore[unresolved-attribute]
     start_event = rec.emit(
         E.THREAD_START_REQUESTED,
         source=rec.capture_source(),
         metadata={"child_name": thread.name},
     )
-    target = getattr(thread, "_target", None) or type(thread).run
     inner = thread.run
 
     def run() -> None:

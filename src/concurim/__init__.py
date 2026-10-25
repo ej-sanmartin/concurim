@@ -12,6 +12,7 @@ from concurim.instrumentation.aio_primitives import (
     TracedAsyncSemaphore,
 )
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
+from concurim.instrumentation.process_pool import TracedProcessPoolExecutor
 from concurim.instrumentation.queues import QueueItem, TracedQueue
 from concurim.instrumentation.sync import (
     TracedBoundedSemaphore,
@@ -38,6 +39,7 @@ __all__ = [
     "TracedRLock",
     "TracedSemaphore",
     "TracedThread",
+    "TracedProcessPoolExecutor",
     "TracedThreadPoolExecutor",
     "__version__",
     "active_recorder",

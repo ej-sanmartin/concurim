@@ -18,6 +18,19 @@ code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
   display: grid;
   grid-template-rows: 48px minmax(0, 1fr) auto auto;
 }
+.app:has(> .stuck) {
+  grid-template-rows: 48px auto minmax(0, 1fr) auto auto;
+}
+.stuck {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 6px 16px; background: color-mix(in srgb, var(--c-waiting) 14%, var(--bg));
+  border-bottom: 1px solid var(--c-waiting); font-size: 13px;
+}
+.stuck p { margin: 0; }
+.stuck button {
+  flex: none; background: transparent; border: 1px solid var(--c-waiting);
+  color: var(--c-waiting); border-radius: 999px; padding: 2px 10px; cursor: pointer;
+}
 .top {
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 20px; border-bottom: 1px solid var(--border);

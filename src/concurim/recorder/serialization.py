@@ -8,6 +8,7 @@ exact name; nothing is extracted to disk and nothing is unpickled.
 from __future__ import annotations
 
 import json
+import os
 import zipfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -53,14 +54,24 @@ def write_trace(
         members[member] = text
         index[name] = member
     meta["sources"] = index
-    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
-        zf.writestr("metadata.json", json.dumps(meta, indent=2))
-        with zf.open("events.jsonl", "w") as out:
-            for event in events:
-                line = json.dumps(event.to_dict(), separators=(",", ":"))
-                out.write(line.encode() + b"\n")
-        for member, text in members.items():
-            zf.writestr(member, text)
+    # Write aside and replace, so a reader never sees a half-written zip.
+    # Snapshots of a live run land on the same path about once a second.
+    dest = Path(path)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dest.with_name(f".{dest.name}.{os.getpid()}.tmp")
+    try:
+        with zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr("metadata.json", json.dumps(meta, indent=2))
+            with zf.open("events.jsonl", "w") as out:
+                for event in events:
+                    line = json.dumps(event.to_dict(), separators=(",", ":"))
+                    out.write(line.encode() + b"\n")
+            for member, text in members.items():
+                zf.writestr(member, text)
+        os.replace(tmp, dest)
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
 
 
 def load_trace(path: str | Path | BinaryIO) -> Trace:

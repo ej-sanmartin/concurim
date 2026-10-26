@@ -37,7 +37,10 @@ uv run concurim             # opens the home screen in your browser
 uv run concurim demo        # records a real threaded pipeline and opens it
 ```
 
-Once published (not yet): `uvx concurim`, `uv tool install concurim`.
+Not on PyPI yet. When 0.1.0 is uploaded: `uvx concurim` opens this home
+screen (Concurim copies itself onto the interpreter you choose), and
+`uv add --dev concurim` is how `concurim record` sees a project's own
+imports. See [publishing](CONTRIBUTING.md#publishing).
 
 On the home screen you can:
 
@@ -111,13 +114,24 @@ Outside a recording they behave exactly like `queue.Queue` / `threading.Thread`.
 
 ```bash
 uv run concurim record src/concurim/samples/threaded_pipeline.py          # -> threaded_pipeline.concurim
-uv run concurim record -o run.concurim --include-source my_app.py arg1 arg2
+uv run concurim record --open -o run.concurim --include-source my_app.py arg1 arg2
 uv run concurim view run.concurim
 uv run concurim inspect run.concurim                           # metadata + coverage
 ```
 
 Options go **before** the script; everything after the script path is passed to
-your program unchanged. Or record from code:
+your program unchanged. `--open` starts the viewer when the run returns.
+A file that does not compile is refused and nothing is recorded. A program
+that starts and then raises is recorded, including the exception.
+
+If the program gets stuck, the trace is still written: about once a second
+while it runs, and again on Ctrl-C or SIGTERM. Playback runs up to the last
+observed event. When actors are waiting on locks one another holds, the
+viewer says so and can jump to that moment. That is this run, not a search
+through other schedules. **Watch so far** on the home screen opens the latest
+snapshot before the program exits.
+
+Or record from code:
 
 ```python
 from concurim import record, TracedQueue
@@ -200,7 +214,7 @@ scripts/build.sh                   # builds the viewer into the package, then uv
 scripts/smoke_wheel.sh             # installs the wheel into a clean venv and runs it
 ```
 
-More: [architecture decision record](docs/adr/0001-architecture-and-reference-projects.md),
+More: [documentation map](docs/index.md),
 [trace format](docs/trace-format.md), [limitations](docs/limitations.md),
 [contributing](CONTRIBUTING.md), [changelog](CHANGELOG.md).
 

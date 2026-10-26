@@ -162,14 +162,45 @@
   where the full suite passes with the GIL off). Linux, and Windows, run in
   CI; the Windows job is marked experimental and its process-control code
   (`viewer/procs.py`) has never been run by the maintainers. On Windows,
-  **Cancel** terminates the program at once (there is no Ctrl-C to send), so
-  no trace is saved for a cancelled run.
-- The viewer is split in two JavaScript chunks: ~316 kB loaded on the home
-  screen and ~223 kB (React Flow) loaded when a recording is opened.
+  **Cancel** terminates the program at once (there is no Ctrl-C to send);
+  the trace is the last snapshot, if one was written.
+- The viewer is split in two JavaScript chunks: ~323 kB loaded on the home
+  screen and ~248 kB (React Flow) loaded when a recording is opened.
 - Large graphs: groups of 4 or more similar workers can be collapsed
   (**Group workers**; automatic above 24 actors). Runs of repeating events in
   the log fold into one row (`×N`).
+## Programs that do not compile
+
+The entry-point file is compiled before anything runs. A syntax error,
+an indentation error, or a file that is not Python is refused, and no
+trace is written. A program that starts and then raises is recorded.
+Modules it imports are not compiled ahead of time.
+
+## Stuck programs
+
+The trace is also written about once a second while a run is going, and
+again when the process receives SIGINT or SIGTERM. Cancel in the viewer
+uses those signals. The picture ends at the last observed event and is
+marked `interrupted` when the program had not finished. If other threads
+were still running, the trace says so.
+
+A cycle in the lock and semaphore wait-for graph (each actor blocked on
+a lock another actor in the cycle holds) is stated in the viewer. That
+is this run's blocking, read off the events. It is not a search for other
+schedules, and it is not drawn for queues or events, which do not name
+who has to move next.
+
+On Windows, Cancel terminates the process at once, so the file is the
+last snapshot. If Cancel arrives before the first snapshot (about a
+second), no trace is saved.
+
+The home screen's **Watch so far** opens the latest snapshot while the
+program is still running. It does not keep updating on its own.
+
 ## Roadmap (not implemented)
 
-Barriers · captions in videos · live view ·
-Perfetto/VizTracer import · editor extension.
+Barriers · captions in videos · a picture that updates while the run
+continues · a single HTML file you can send someone ·
+Perfetto/VizTracer import · editor extension. Searching other
+interleavings, a GIL-ownership timeline, uvloop, and importing foreign
+trace formats are out of scope for now.

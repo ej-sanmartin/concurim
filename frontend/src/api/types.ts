@@ -109,6 +109,8 @@ export interface RunStatus {
   output: string;
   output_truncated: boolean;
   trace_ready: boolean;
+  /** A flushed trace exists while the run may still be going. */
+  snapshot_ready?: boolean;
   exception: string | null;
   error: string | null;
   script: string;

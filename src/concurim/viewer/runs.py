@@ -23,21 +23,12 @@ from typing import Any, cast
 
 import concurim
 from concurim.instrumentation.auto import LEVELS
+from concurim.program_check import ProgramError, check_script
 from concurim.recorder.serialization import Trace, load_trace
+from concurim.viewer.plan import BOOT, Plan
 from concurim.viewer.procs import escalate, kill_now, spawn
 from concurim.viewer.workspaces import Workspaces
 
-# Runs in the *target* interpreter, which may not have Concurim installed:
-# a private copy of the (pure Python) package is appended to sys.path.
-BOOT = (
-    "import sys\n"
-    "if sys.version_info < (3, 13):\n"
-    "    sys.exit('Concurim needs Python 3.13+; this is '"
-    " + sys.version.split()[0])\n"
-    "sys.path.append(sys.argv.pop(1))\n"
-    "from concurim.cli import main\n"
-    "sys.exit(main())\n"
-)
 MAX_OUTPUT = 256 * 1024
 MAX_PLANS = 32
 
@@ -48,40 +39,6 @@ class RunError(ValueError):
 
 class RunConflict(RuntimeError):
     """Another program is already running (HTTP 409)."""
-
-
-@dataclass
-class Plan:
-    """Everything that will happen if the user confirms."""
-
-    id: str
-    argv: list[str]
-    cwd: str
-    script: str
-    args: list[str]
-    interpreter: str
-    auto: str
-    include_source: bool
-    preview: bool
-    trace_path: Path
-
-    def describe(self) -> dict[str, Any]:
-        """JSON-ready description shown to the user before running."""
-        shown = [BOOT_LABEL if a == BOOT else a for a in self.argv]
-        return {
-            "id": self.id,
-            "interpreter": self.interpreter,
-            "script": self.script,
-            "args": self.args,
-            "cwd": self.cwd,
-            "auto": self.auto,
-            "include_source": self.include_source,
-            "preview": self.preview,
-            "command": shlex.join(shown),
-        }
-
-
-BOOT_LABEL = "<concurim bootstrap>"
 
 
 @dataclass
@@ -108,6 +65,7 @@ class Run:
             "output": bytes(self.output).decode("utf-8", "replace"),
             "output_truncated": self.truncated,
             "trace_ready": self.trace_ready,
+            "snapshot_ready": self.plan.trace_path.is_file(),
             "exception": self.exception,
             "error": self.error,
             "script": self.plan.script,
@@ -173,16 +131,16 @@ class RunManager:
 
     def _locate(self, req: dict[str, Any]) -> tuple[Path, Path]:
         if req.get("workspace_id"):
-            return self.workspaces.resolve(
+            cwd, script = self.workspaces.resolve(
                 req["workspace_id"], req.get("entry")
             )
-        raw = req.get("script_path")
-        if not isinstance(raw, str) or not raw or len(raw) > 1000:
-            raise RunError("choose a Python file to run")
-        script = Path(raw).expanduser().resolve()
-        if script.suffix != ".py" or not script.is_file():
-            raise RunError(f"not a .py file: {script}")
-        return script.parent, script
+        else:
+            cwd, script = _script_on_disk(req.get("script_path"))
+        try:
+            check_script(script)
+        except ProgramError as exc:
+            raise RunError(str(exc)) from exc
+        return cwd, script
 
     def _boot_dir(self) -> Path:
         """A directory holding only a copy of the ``concurim`` package."""
@@ -259,6 +217,21 @@ class RunManager:
             raise RunError("unknown run")
         return run.status()
 
+    def open_snapshot(self, run_id: str) -> dict[str, Any]:
+        """Load the latest flushed trace. The run may still be going."""
+        run = self._runs.get(run_id)
+        if run is None:
+            raise RunError("unknown run")
+        path = run.plan.trace_path
+        if not path.is_file():
+            raise RunError("no snapshot yet")
+        try:
+            trace = load_trace(path)
+        except (OSError, ValueError) as exc:
+            raise RunError(f"the snapshot could not be opened: {exc}") from exc
+        self._on_trace(trace, Path(run.plan.script).name)
+        return run.status()
+
     def cancel(self, run_id: str) -> dict[str, Any]:
         """Interrupt a running program (Ctrl-C first, then terminate/kill)."""
         run = self._runs.get(run_id)
@@ -277,6 +250,16 @@ class RunManager:
             if run.proc and run.proc.poll() is None:
                 kill_now(run.proc)
         self.workspaces.cleanup()
+
+
+def _script_on_disk(raw: object) -> tuple[Path, Path]:
+    """The directory and entry point of a script the user named by path."""
+    if not isinstance(raw, str) or not raw or len(raw) > 1000:
+        raise RunError("choose a Python file to run")
+    script = Path(raw).expanduser().resolve()
+    if script.suffix != ".py" or not script.is_file():
+        raise RunError(f"not a .py file: {script}")
+    return script.parent, script
 
 
 def _interpreter(value: object) -> str:

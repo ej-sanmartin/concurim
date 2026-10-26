@@ -13,11 +13,12 @@ interface Props {
   run: RunStatus;
   onCancel: () => void;
   onOpen: () => void;
+  onWatch: () => void;
   onBack: () => void;
 }
 
 /** Live output of the program, its outcome, and what to do next. */
-export function RunProgress({ run, onCancel, onOpen, onBack }: Props) {
+export function RunProgress({ run, onCancel, onOpen, onWatch, onBack }: Props) {
   const out = useRef<HTMLPreElement | null>(null);
   useEffect(() => {
     out.current?.scrollTo({ top: out.current.scrollHeight });
@@ -36,6 +37,11 @@ export function RunProgress({ run, onCancel, onOpen, onBack }: Props) {
       </pre>
       {run.output_truncated && <p className="muted">Showing the end of the output.</p>}
       <div className="actions">
+        {!done && run.snapshot_ready && (
+          <button onClick={onWatch} data-testid="watch-snapshot">
+            Watch so far
+          </button>
+        )}
         {!done && <button onClick={onCancel} data-testid="cancel-run">Cancel</button>}
         {done && run.trace_ready && (
           <button className="primary" onClick={onOpen} data-testid="open-recording">

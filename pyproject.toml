@@ -3,17 +3,31 @@ name = "concurim"
 version = "0.1.0"
 description = "See how Python runs together: record and replay concurrent execution."
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.13"
 authors = [{ name = "Concurim contributors" }]
-keywords = ["concurrency", "visualization", "threading", "asyncio", "queue"]
+keywords = [
+  "concurrency",
+  "visualization",
+  "threading",
+  "asyncio",
+  "queue",
+  "debugging",
+  "observability",
+]
 classifiers = [
   "Development Status :: 3 - Alpha",
+  "Environment :: Console",
   "Intended Audience :: Developers",
   "Intended Audience :: Education",
   "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
   "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development :: Debuggers",
   "Typing :: Typed",
 ]
 dependencies = []
@@ -26,8 +40,11 @@ video = ["imageio-ffmpeg>=0.5"]
 concurim = "concurim.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/concurim/concurim"
-Changelog = "https://github.com/concurim/concurim/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/ej-sanmartin/concurim"
+Documentation = "https://github.com/ej-sanmartin/concurim/blob/main/docs/index.md"
+Source = "https://github.com/ej-sanmartin/concurim"
+Issues = "https://github.com/ej-sanmartin/concurim/issues"
+Changelog = "https://github.com/ej-sanmartin/concurim/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6", "jsonschema>=4", "ty>=0.0.1a1"]
@@ -48,7 +65,8 @@ artifacts = [
 [tool.hatch.build.targets.sdist]
 include = ["src", "tests", "frontend/src", "frontend/*.json",
   "frontend/*.ts", "frontend/*.html", "docs", "scripts", "README.md",
-  "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md"]
+  "LICENSE", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md",
+  "pyproject.toml"]
 artifacts = [
   "src/concurim/viewer/static/**",
   "src/concurim/samples/*.concurim",

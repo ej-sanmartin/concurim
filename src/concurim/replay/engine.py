@@ -19,6 +19,12 @@ from concurim.replay.explanations import explain
 from concurim.replay.models import Applied, snapshot
 from concurim.replay.spans import track_holds, track_spans
 from concurim.replay.state import Reducer
+from concurim.replay.wait_for import WaitTracker, wait_warnings
+
+_CYCLE_NOTE = (
+    "Taken from who holds each lock and who is blocked on it. "
+    "It describes this run, not other possible schedules."
+)
 
 REPLAY_VERSION = 1
 
@@ -39,17 +45,23 @@ def build_replay(trace: Trace) -> dict[str, Any]:
     journeys: dict[str, list[list[Any]]] = {}
     holds: dict[tuple[str, str], dict[str, Any]] = {}
     last_index = max(len(events) - 1, 0)
+    waits = WaitTracker()
 
     for i, ev in enumerate(events):
         before = {
             q: (len(s.items), s.unfinished) for q, s in red.queues.items()
         }
         app = red.apply(ev)
+        explanation = explain(ev, red, app)
+        note = waits.observe(red, i)
+        if note:
+            explanation["text"] = f"{explanation['text']} {note}"
+            explanation["inferred"].append(_CYCLE_NOTE)
         frames.append(
             {
                 "i": i,
                 "changes": _snapshot(red, app),
-                "explanation": explain(ev, red, app),
+                "explanation": explanation,
                 "motion": app.motion,
             }
         )
@@ -64,10 +76,13 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         spans.append(span)
     spans.sort(key=lambda s: (s["start"], s["end"]))
 
-    warnings = list(red.warnings)
+    program = trace.metadata.get("program") or {}
+    report = waits.report(red)
+    head = wait_warnings(program, report)
+    warnings = head + list(red.warnings)
     if trace.metadata.get("truncated"):
         warnings.insert(
-            0,
+            len(head),
             f"Trace is truncated: "
             f"{trace.metadata.get('dropped_events', '?')} events "
             "were dropped after the buffer limit was reached.",
@@ -89,6 +104,7 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         "occupancy": occupancy,
         "summary": _summary(events),
         "warnings": warnings,
+        "wait_for": report,
     }
 
 

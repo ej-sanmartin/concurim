@@ -8,6 +8,7 @@ import { Explanation } from "./components/Explanation";
 import { Inspector } from "./components/Inspector";
 import { Lineage } from "./components/Lineage";
 import { readCapture, useCaptureBridge } from "./capture";
+import { StuckBanner } from "./components/StuckBanner";
 import { Timeline } from "./components/Timeline";
 import { TraceInfo } from "./components/TraceInfo";
 import { ExportDialog } from "./export/ExportDialog";
@@ -155,6 +156,7 @@ export function Viewer({
           )}
         </div>
       </header>
+      <StuckBanner replay={replay} onShow={pb.seek} />
       <main className="stage">
         <section className="canvas" aria-label="Execution canvas">
           {mode === "resources" ? (

@@ -193,4 +193,15 @@ export interface Replay {
   occupancy: Record<string, [number, number, number][]>;
   summary: { event_count: number; duration_ns: number; by_type: Record<string, number> };
   warnings: string[];
+  /** Lock wait-for graph. Absent on replays built before this field existed. */
+  wait_for?: {
+    waiting: { actor: string; resource: string; holders: string[] }[];
+    /** Cycles still open at the end of the picture. Names, not ids. */
+    cycles: string[][];
+    episodes: {
+      at: number;
+      resolved_at: number | null;
+      actors: string[][];
+    }[];
+  };
 }

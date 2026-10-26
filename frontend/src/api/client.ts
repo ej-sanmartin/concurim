@@ -55,6 +55,9 @@ export const getRun = (id: string) =>
   call<RunStatus>("GET", `api/runs/${id}`);
 export const cancelRun = (id: string) =>
   call<RunStatus>("POST", `api/runs/${id}/cancel`);
+/** Load the latest flushed trace into the viewer. The run may still be going. */
+export const openSnapshot = (id: string) =>
+  call<RunStatus>("POST", `api/runs/${id}/snapshot`);
 
 export const startExport = (req: ExportRequest) =>
   call<ExportStatus>("POST", "api/export", req);

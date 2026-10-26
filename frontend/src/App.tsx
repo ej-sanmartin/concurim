@@ -82,8 +82,13 @@ export function App() {
     body = shown.replay.events.length === 0
       ? (
         <div className="splash">
-          This trace contains no events: the program may not have used
-          anything the chosen observability level can see.{" "}
+          <p>
+            This trace contains no events: the program may not have used
+            anything the chosen observability level can see.
+          </p>
+          {shown.replay.warnings[0] && (
+            <p className="warning">{shown.replay.warnings[0]}</p>
+          )}
           <button data-testid="home" onClick={() => goHome().catch(fail)}>
             Back to home
           </button>

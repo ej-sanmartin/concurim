@@ -100,6 +100,14 @@ def test_record_waits_for_non_daemon_threads(tmp_path):
     assert any(e.event_type == "queue.put.completed" for e in ev)
 
 
+def test_record_refuses_a_program_that_does_not_compile(tmp_path):
+    (tmp_path / "bad.py").write_text("def (\n")
+    result = run_cli("record", "bad.py", cwd=tmp_path)
+    assert result.returncode == 2
+    assert "cannot run" in result.stderr
+    assert not (tmp_path / "bad.concurim").exists()
+
+
 def test_record_missing_script_and_bad_trace(tmp_path, capsys):
     assert main(["record", str(tmp_path / "nope.py")]) == 2
     bad = tmp_path / "bad.concurim"

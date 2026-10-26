@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 import tempfile
 import webbrowser
@@ -13,6 +14,7 @@ from concurim import __version__
 from concurim.config import RecorderConfig
 from concurim.export import cli as export_cli
 from concurim.instrumentation.auto import LEVELS
+from concurim.program_check import ProgramError
 from concurim.recorder.events import TraceFormatError
 from concurim.recorder.serialization import Trace, load_trace
 from concurim.samples import sample_file
@@ -70,6 +72,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="lightweight mode: no source locations",
     )
+    rec.add_argument(
+        "--open",
+        action="store_true",
+        help="open the viewer when the recording finishes",
+    )
+    _add_server_options(rec)
     rec.add_argument("script", type=Path)
     rec.add_argument("script_args", nargs=argparse.REMAINDER)
     rec.set_defaults(func=_cmd_record)
@@ -110,7 +118,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         return args.func(args)
-    except (TraceFormatError, FileNotFoundError) as error:
+    except (TraceFormatError, FileNotFoundError, ProgramError) as error:
         print(f"concurim: error: {error}", file=sys.stderr)
         return 2
 
@@ -131,10 +139,24 @@ def _cmd_record(args: argparse.Namespace) -> int:
         # Paths are shown relative to the script, wherever it is run from.
         source_root=str(script.resolve().parent),
     )
-    code, count = run_recorded(script, args.script_args, output, config)
+    code, count = run_recorded(
+        script, args.script_args, output, config, view_on_stop=args.open
+    )
     print(f"concurim: recorded {count} events to {output}", file=sys.stderr)
     print(f"concurim: view it with: concurim view {output}", file=sys.stderr)
     print(SHARING_WARNING, file=sys.stderr)
+    stuck = _still_blocked(output)
+    if args.open and output.is_file():
+        _serve(
+            load_trace(output),
+            args.port,
+            not args.no_browser,
+            output.name,
+        )
+    if stuck:
+        # Non-daemon threads are still blocked. Returning would hang in
+        # interpreter shutdown and never give the terminal back.
+        os._exit(code)
     return code
 
 
@@ -192,6 +214,17 @@ def _cmd_demo(args: argparse.Namespace) -> int:
     return _serve(load_trace(out), args.port, not args.no_browser, script.name)
 
 
+def _still_blocked(path: Path) -> bool:
+    """Whether the written trace says other threads were still running."""
+    if not path.is_file():
+        return False
+    try:
+        program = load_trace(path).metadata.get("program") or {}
+    except (TraceFormatError, OSError):
+        return False
+    return bool(program.get("still_blocked"))
+
+
 def _cmd_inspect(args: argparse.Namespace) -> int:
     trace = load_trace(args.trace)
     meta = trace.metadata
@@ -211,6 +244,11 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
         f"GIL enabled: {env.get('gil_enabled')})"
     )
     print(f"sources:        {len(trace.sources)} embedded")
+    program = meta.get("program") or {}
+    if program.get("outcome"):
+        print(f"outcome:        {program['outcome']}")
+    if program.get("still_blocked"):
+        print("WARNING:        stopped while other threads were still running")
     if meta.get("truncated"):
         print(
             f"WARNING:        truncated, {meta.get('dropped_events')} "

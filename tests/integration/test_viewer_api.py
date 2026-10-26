@@ -39,7 +39,14 @@ def test_every_bundled_sample_opens_and_replays_cleanly(client, sample):
     status, _ = client.post_json(f"/api/samples/{sample['id']}/open")
     assert status == 200
     replay = client.get_json("/api/replay")
-    assert replay["warnings"] == []
+    # lock-order waits out a real cycle; the picture says it appeared and
+    # then cleared. Every other sample is a run with nothing left waiting.
+    if sample["id"] == "lock-order":
+        assert len(replay["warnings"]) == 1
+        assert "one another holds" in replay["warnings"][0]
+        assert "cleared" in replay["warnings"][0]
+    else:
+        assert replay["warnings"] == []
     assert replay["summary"]["event_count"] > 10
     shown = client.get_json("/api/session")
     assert shown["has_trace"] and shown["label"] == sample["title"]

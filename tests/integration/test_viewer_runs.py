@@ -46,6 +46,16 @@ def run_to_end(client, ws, **overrides):
     return p, client.wait_run(p["id"])
 
 
+def test_a_program_that_does_not_compile_is_not_a_plan(client):
+    ws = client.upload({"main.py": "def (\n"})
+    status, data = client.post_json(
+        "/api/runs/plan",
+        {"workspace_id": ws["id"], "entry": ws["suggested"]},
+    )
+    assert status == 400
+    assert "cannot run" in data["error"]
+
+
 def test_dropped_file_is_not_executed_until_the_user_confirms(client, tmp_path):
     marker = tmp_path / "ran.txt"
     code = f"open({str(marker)!r}, 'w').write('x')\n"

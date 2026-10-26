@@ -38,6 +38,28 @@ files under ~300 lines (split before they grow), no duplicated logic.
 Prefer the simplest design; do not add dependencies lightly (runtime
 dependencies are currently zero).
 
+## Publishing
+
+0.1.0 is not on PyPI yet. The `pyproject.toml` metadata (SPDX license,
+readme, classifiers, project URLs, the `concurim` script) is what the
+upload will use. From a clean tree, after `scripts/build.sh`:
+
+```bash
+uv build
+uvx twine check dist/*
+```
+
+Upload only when cutting the release. Do not upload from a dirty tree, and
+do not upload over an existing version: PyPI rejects a repeated version.
+
+```bash
+uvx twine upload dist/*
+```
+
+Install paths once that version is on PyPI: `uvx concurim` (home screen;
+the server copies itself onto the interpreter you pick) and
+`uv add --dev concurim` when `concurim record` must import the project.
+
 ## Frontend development note
 
 `npm run dev` proxies `/api` to the server, but POST features (opening

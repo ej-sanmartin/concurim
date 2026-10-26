@@ -175,6 +175,10 @@ def _run_cancel(srv: ViewerServer, m: re.Match[str], *_: object) -> Response:
     return ok(srv.runs.cancel(m["id"]))
 
 
+def _run_snapshot(srv: ViewerServer, m: re.Match[str], *_: object) -> Response:
+    return ok(srv.runs.open_snapshot(m["id"]))
+
+
 def _export_start(srv: ViewerServer, _m: Any, _q: Any, body: bytes) -> Response:
     return ok(srv.exports.start(_object(body)), 202)
 
@@ -212,6 +216,7 @@ ROUTES: list[tuple[str, str, Handler, int]] = [
     ("POST", r"/api/runs/(?P<id>\w+)/start", _run_start, MAX_SMALL_JSON),
     ("GET", r"/api/runs/(?P<id>\w+)", _run_status, 0),
     ("POST", r"/api/runs/(?P<id>\w+)/cancel", _run_cancel, 0),
+    ("POST", r"/api/runs/(?P<id>\w+)/snapshot", _run_snapshot, 0),
     ("POST", r"/api/export", _export_start, MAX_SMALL_JSON),
     ("GET", r"/api/export/(?P<id>\w+)", _export_status, 0),
     ("POST", r"/api/export/(?P<id>\w+)/cancel", _export_cancel, 0),

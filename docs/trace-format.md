@@ -25,7 +25,7 @@ are rejected. Nothing is unpickled or executed.
 | `config` | recording options used (`include_source`, `preview`, ...) |
 | `environment` | implementation, version, `free_threaded_build` (build capability), `gil_enabled` (runtime state or `null`), platform |
 | `coverage.observed` / `coverage.not_observed` | what this recorder can and cannot see |
-| `program` | script name, `exit_code`, `exception` type if any |
+| `program` | script name, `exit_code`, `exception` type if any, `outcome` (`finished`, `failed`, `interrupted`, or `running` for a snapshot), `still_blocked` when other threads had not returned, `signal` when a signal stopped the run |
 | `sources` | map of display path to `sources/N.txt` |
 
 ## Events

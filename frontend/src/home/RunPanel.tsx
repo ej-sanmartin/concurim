@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { cancelRun, getRun, planRun, startRun } from "../api/client";
+import { cancelRun, getRun, openSnapshot, planRun, startRun } from "../api/client";
 import type { RunPlan, RunStatus, SessionInfo, WorkspaceInfo } from "../api/types";
 import { LEVEL_NAME, RunForm, type RunOptions } from "./RunForm";
 import { RunProgress } from "./RunProgress";
@@ -85,7 +85,12 @@ export function RunPanel({ session, workspace, title, onOpenTrace, onClose }: Pr
       </header>
       {run ? (
         <RunProgress run={run} onCancel={() => cancelRun(run.id).then(setRun)}
-          onOpen={onOpenTrace} onBack={() => setRun(null)} />
+          onOpen={onOpenTrace}
+          onWatch={() => {
+            openSnapshot(run.id).then(() => onOpenTrace())
+              .catch((e) => setProblem(message(e)));
+          }}
+          onBack={() => setRun(null)} />
       ) : (
         <>
           <RunForm options={options} onChange={setOptions} workspace={workspace}

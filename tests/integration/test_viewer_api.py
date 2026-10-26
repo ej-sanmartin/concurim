@@ -20,7 +20,7 @@ def test_home_state_has_no_trace_and_lists_samples_and_interpreters(client):
     assert session["has_trace"] is False
     ids = [s["id"] for s in session["samples"]]
     assert ids == [s["id"] for s in load_manifest()["samples"]]
-    assert session["planned"], "unsupported examples must be listed as planned"
+    assert session["planned"] == []
     assert any(i["supported"] for i in session["interpreters"])
     assert client.request("GET", "/api/replay")[0] == 404
 

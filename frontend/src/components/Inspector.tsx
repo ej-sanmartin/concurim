@@ -46,6 +46,9 @@ export function Inspector({ replay, world, index, selection, onSeek }: Props) {
         ? [["permits free", `${s.value} of ${s.capacity}`] as [string, string]] : []),
       ...(info.kind === "event"
         ? [["flag", s.is_set ? "set" : "not set"] as [string, string]] : []),
+      ...(info.kind === "barrier"
+        ? [["party", `${s.waiters.length} of ${s.capacity} waiting`] as [string, string],
+          ["broken", s.broken ? "yes" : "no"] as [string, string]] : []),
       ...(info.kind === "condition"
         ? [["lock", s.lock ? name(s.lock) : "not recorded"] as [string, string],
           ["notified, not yet resumed", String(s.notified)] as [string, string]] : []),

@@ -15,6 +15,10 @@ from concurim.instrumentation.aio_primitives import (
     TracedAsyncQueue,
     TracedAsyncSemaphore,
 )
+from concurim.instrumentation.barriers import (
+    TracedAsyncBarrier,
+    TracedBarrier,
+)
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
 from concurim.instrumentation.mp_pool import TracedPool
 from concurim.instrumentation.mp_process import TracedProcess
@@ -39,12 +43,14 @@ from concurim.replay.engine import build_replay
 __all__ = [
     "QueueItem",
     "RecorderConfig",
+    "TracedAsyncBarrier",
     "TracedAsyncBoundedSemaphore",
     "TracedAsyncCondition",
     "TracedAsyncEvent",
     "TracedAsyncLock",
     "TracedAsyncQueue",
     "TracedAsyncSemaphore",
+    "TracedBarrier",
     "TracedBoundedSemaphore",
     "TracedCondition",
     "TracedEvent",

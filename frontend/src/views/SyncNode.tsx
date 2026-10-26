@@ -8,7 +8,8 @@ export type SyncNodeType = Node<Record<string, never>, "sync">;
 
 export const KIND_LABEL: Record<SyncKind, string> = {
   lock: "lock", rlock: "reentrant lock", semaphore: "semaphore",
-  event: "event", condition: "condition", taskgroup: "task group",
+  event: "event", condition: "condition", barrier: "barrier",
+  taskgroup: "task group",
 };
 
 interface Summary {
@@ -25,6 +26,14 @@ export function summarize(
   if (kind === "event") {
     const set = state?.is_set ?? false;
     return { text: set ? "set" : "not set", busy: !set && waiting > 0 };
+  }
+  if (kind === "barrier") {
+    const parties = info.capacity;
+    if (state?.broken) return { text: "broken", busy: false };
+    return {
+      text: waiting > 0 ? `${waiting} of ${parties} waiting` : "open",
+      busy: waiting > 0,
+    };
   }
   if (kind === "condition") {
     const notified = state?.notified ?? 0;
@@ -54,8 +63,9 @@ export function summarize(
 }
 
 /**
- * A lock, semaphore, event, condition or task group: its state, and who is
- * waiting for it. Conditions link to their lock through the side handles.
+ * A lock, semaphore, event, condition, barrier or task group: its state,
+ * and who is waiting for it. Conditions link to their lock through the
+ * side handles.
  */
 export function SyncNode({ id }: NodeProps<SyncNodeType>) {
   const { world, replay, event, selection } = useFlow();

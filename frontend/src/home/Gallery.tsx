@@ -73,14 +73,16 @@ export function Gallery({ session, onOpen, busy }: Props) {
         ))}
       </div>
       {error && <p className="warning">{error}</p>}
-      <p className="planned muted">
-        Planned, not yet supported:{" "}
-        {session.planned.map((p, i) => (
-          <span key={p.title} title={`needs ${p.needs}`}>
-            {i > 0 && " · "}{p.title}
-          </span>
-        ))}
-      </p>
+      {session.planned.length > 0 && (
+        <p className="planned muted">
+          Planned, not yet supported:{" "}
+          {session.planned.map((p, i) => (
+            <span key={p.title} title={`needs ${p.needs}`}>
+              {i > 0 && " · "}{p.title}
+            </span>
+          ))}
+        </p>
+      )}
     </section>
   );
 }

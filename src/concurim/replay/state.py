@@ -21,6 +21,7 @@ from concurim.replay.models import (
 from concurim.replay.models import (
     resume as _resume,
 )
+from concurim.replay.state_barrier import BARRIER_HANDLERS
 from concurim.replay.state_events import EVENT_HANDLERS
 from concurim.replay.state_exec import EXEC_HANDLERS
 from concurim.replay.state_sync import SYNC_HANDLERS
@@ -316,6 +317,7 @@ _HANDLERS = {
     E.QUEUE_ITEM_DISCARDED: Reducer._discarded,
     **SYNC_HANDLERS,
     **EVENT_HANDLERS,
+    **BARRIER_HANDLERS,
     **TASKGROUP_HANDLERS,
     **EXEC_HANDLERS,
 }

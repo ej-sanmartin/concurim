@@ -77,7 +77,7 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
     if rank >= 3:
         observed.append(
             "threading Lock, RLock, Semaphore, BoundedSemaphore, Event, "
-            "Condition, "
+            "Condition, Barrier, "
             "ThreadPoolExecutor and ProcessPoolExecutor (submit, and task "
             "start/end as reported by each worker process) created by the "
             "program's own code"
@@ -88,15 +88,15 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         )
     else:
         not_observed.append(
-            "Plain threading locks, semaphores, events, conditions and "
-            "executors (use the sync instrumentation level, or the Traced* "
-            "classes)"
+            "Plain threading locks, semaphores, events, conditions, "
+            "barriers and executors (use the sync instrumentation level, "
+            "or the Traced* classes)"
         )
     if rank >= 4:
         observed.append(
             "asyncio tasks (creation, each step the event loop runs, end) "
-            "and asyncio Queue, Lock, Semaphore, BoundedSemaphore, Event "
-            "and Condition created during the run"
+            "and asyncio Queue, Lock, Semaphore, BoundedSemaphore, Event, "
+            "Condition and Barrier created during the run"
         )
         not_observed.append(
             "What an asyncio task awaits when it is not one of the above "

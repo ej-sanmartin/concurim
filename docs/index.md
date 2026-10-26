@@ -28,6 +28,6 @@ These are the pages to add as the tool settles. They are not written yet.
 
 A program that cannot compile is not a run. A program that deadlocks is a
 run that stops at the last observed event. Other interleavings are not
-searched. Barriers, video captions, a live picture that keeps updating, and
+searched. Video captions, a live picture that keeps updating, and
 a single HTML file you can send someone are listed in
 [limitations](limitations.md) and are not in 0.1.0.

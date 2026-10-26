@@ -11,7 +11,7 @@ Levels, from least to most invasive; each includes the ones before it:
     ``LifoQueue``, ``PriorityQueue`` and ``SimpleQueue`` are not.
 ``"sync"``
     Replaces ``threading.Lock/RLock/Semaphore/BoundedSemaphore/Event/
-    Condition``, ``ThreadPoolExecutor``, ``ProcessPoolExecutor``,
+    Condition/Barrier``, ``ThreadPoolExecutor``, ``ProcessPoolExecutor``,
     ``multiprocessing.Process`` and ``multiprocessing.Pool`` (task start and
     end in each worker process). Only objects created directly by
     *your* code are traced: ones created inside the standard library or
@@ -19,7 +19,7 @@ Levels, from least to most invasive; each includes the ones before it:
 ``"asyncio"``
     Records asyncio task creation and every task step of the event loop, and
     replaces ``asyncio.Queue/Lock/Semaphore/BoundedSemaphore/Event/
-    Condition/TaskGroup``.
+    Condition/Barrier/TaskGroup``.
 
 All patches are restored on exit, even if the program fails. Code that
 inspects ``Queue.queue`` sees the original items; ``isinstance(x,
@@ -60,6 +60,7 @@ from concurim.instrumentation.auto_support import (
     in_stdlib,
     user_caller,
 )
+from concurim.instrumentation.barriers import AutoAsyncBarrier, AutoBarrier
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
 from concurim.instrumentation.futures_support import traced_as_completed
 from concurim.instrumentation.process_pool import TracedProcessPoolExecutor
@@ -197,6 +198,7 @@ def _patches(level: str) -> list[tuple[Any, str, Any]]:
             (threading, "BoundedSemaphore", AutoBoundedSemaphore),
             (threading, "Event", AutoEvent),
             (threading, "Condition", AutoCondition),
+            (threading, "Barrier", AutoBarrier),
             (concurrent.futures, "ThreadPoolExecutor", AutoExecutor),
             (concurrent.futures.thread, "ThreadPoolExecutor", AutoExecutor),
             (concurrent.futures, "ProcessPoolExecutor", AutoProcessPool),
@@ -221,6 +223,7 @@ def _patches(level: str) -> list[tuple[Any, str, Any]]:
             (asyncio, "TaskGroup", AutoTaskGroup),
             (asyncio, "Event", AutoAsyncEvent),
             (asyncio, "Condition", AutoAsyncCondition),
+            (asyncio, "Barrier", AutoAsyncBarrier),
         ]
     return out
 

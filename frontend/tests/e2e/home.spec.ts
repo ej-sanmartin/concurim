@@ -17,13 +17,13 @@ async function goHome(page: Page) {
 const SAMPLES = [
   "producer-consumer", "backpressure", "shutdown", "plain-threads", "plain-queues",
   "lock-contention", "semaphore", "thread-pool", "asyncio-tasks", "asyncio-queue",
-  "process-pool",
+  "process-pool", "barrier",
 ];
 
-test("home lists the bundled examples and says which are planned", async ({ page }) => {
+test("home lists the bundled examples", async ({ page }) => {
   await goHome(page);
   for (const id of SAMPLES) await expect(page.getByTestId(`sample-${id}`)).toBeVisible();
-  await expect(page.getByText("Planned, not yet supported")).toContainText("Barriers");
+  await expect(page.getByText("Planned, not yet supported")).toHaveCount(0);
   await expect(page.getByTestId("dropzone")).toContainText("watch its concurrency unfold");
 });
 

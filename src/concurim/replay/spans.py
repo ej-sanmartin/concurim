@@ -23,6 +23,7 @@ _SPAN_OPEN = {
     E.SEMAPHORE_ACQUIRE_BLOCKED: "wait_lock",
     E.EVENT_WAIT_BLOCKED: "wait_event",
     E.CONDITION_WAIT_STARTED: "wait_condition",
+    E.BARRIER_WAIT_BLOCKED: "wait_barrier",
     E.TASKGROUP_EXIT_STARTED: "wait_taskgroup",
 }
 _SPAN_CLOSE = {
@@ -48,6 +49,8 @@ _SPAN_CLOSE = {
     E.CONDITION_WAIT_COMPLETED: "completed",
     E.CONDITION_WAIT_TIMEOUT: "timeout",
     E.CONDITION_WAIT_FAILED: "failed",
+    E.BARRIER_WAIT_COMPLETED: "completed",
+    E.BARRIER_WAIT_FAILED: "failed",
     E.TASKGROUP_EXIT_COMPLETED: "completed",
 }
 

@@ -5,6 +5,9 @@
 First vertical slice, then the GUI-first milestone, then locks, pools and
 asyncio.
 
+- Barriers (`threading` and `asyncio`): who has arrived, the release
+  when the party is complete, and abort or reset. The home screen includes
+  a three-worker example.
 - A program that does not compile is refused before it starts. A run that
   gets stuck still leaves a trace: the buffer is flushed about once a second
   and again on SIGINT or SIGTERM, and the viewer says who is still waiting

@@ -145,7 +145,7 @@ ul.history, ol.journey { list-style: none; margin: 0; padding: 0; }
 .span { opacity: 0.9; }
 .span-wait_put, .span-wait_get, .span-wait_join { fill: var(--c-waiting); opacity: 0.55; }
 .span-wait_lock, .span-wait_event, .span-wait_condition,
-.span-wait_taskgroup { fill: var(--c-waiting); opacity: 0.55; }
+.span-wait_barrier, .span-wait_taskgroup { fill: var(--c-waiting); opacity: 0.55; }
 .span-hold { fill: var(--c-suspended); opacity: 0.6; }
 .span-work { fill: var(--c-working); opacity: 0.7; }
 .span.out-timeout, .span.out-failed { fill: var(--c-failed); }

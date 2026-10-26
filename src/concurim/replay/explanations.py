@@ -12,6 +12,7 @@ from typing import Any
 from concurim.recorder.events import Event
 from concurim.recorder.events import EventType as E
 from concurim.replay import (
+    rules_barrier,
     rules_events,
     rules_exec,
     rules_queues,
@@ -116,6 +117,13 @@ _RULES = {
     E.CONDITION_WAIT_COMPLETED: rules_events._cond_wait_completed,
     E.CONDITION_WAIT_TIMEOUT: rules_events._cond_wait_timeout,
     E.CONDITION_WAIT_FAILED: rules_events._wait_failed,
+    E.BARRIER_CREATED: rules_barrier._created,
+    E.BARRIER_WAIT_STARTED: rules_barrier._started,
+    E.BARRIER_WAIT_BLOCKED: rules_barrier._blocked,
+    E.BARRIER_WAIT_COMPLETED: rules_barrier._completed,
+    E.BARRIER_WAIT_FAILED: rules_barrier._failed,
+    E.BARRIER_ABORT: rules_barrier._abort,
+    E.BARRIER_RESET: rules_barrier._reset,
     E.TASKGROUP_CREATED: rules_events._group_created,
     E.TASKGROUP_TASK_ADDED: rules_events._group_task_added,
     E.TASKGROUP_EXIT_STARTED: rules_events._group_exit_started,

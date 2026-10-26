@@ -53,7 +53,8 @@
   the code view. Thread status "running (not blocked)" is therefore
   **inferred** and drawn with a dashed border.
 - Which item `task_done()` refers to, unless `object_id=` is passed.
-- `threading.Barrier`, `multiprocessing.Manager` objects (later milestones).
+- `multiprocessing.Barrier` and `multiprocessing.Manager` objects (a later
+  milestone). `threading.Barrier` and `asyncio.Barrier` are observed.
 - `LifoQueue`/`PriorityQueue` (items are wrapped in an envelope, which would
   break priority comparison); `SimpleQueue` (no hooks).
 
@@ -199,7 +200,7 @@ program is still running. It does not keep updating on its own.
 
 ## Roadmap (not implemented)
 
-Barriers · captions in videos · a picture that updates while the run
+Captions in videos · a picture that updates while the run
 continues · a single HTML file you can send someone ·
 Perfetto/VizTracer import · editor extension. Searching other
 interleavings, a GIL-ownership timeline, uvloop, and importing foreign

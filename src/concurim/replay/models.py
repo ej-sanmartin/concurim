@@ -50,11 +50,11 @@ class QueueState:
 
 @dataclass
 class SyncState:
-    """A lock, semaphore, event, condition or task group."""
+    """A lock, semaphore, event, condition, barrier or task group."""
 
     id: str
     name: str
-    # lock | rlock | semaphore | event | condition | taskgroup
+    # lock | rlock | semaphore | event | condition | barrier | taskgroup
     kind: str = "lock"
     capacity: int = 1  # permits at creation
     value: int = 1  # permits available now (semaphores)
@@ -63,6 +63,7 @@ class SyncState:
     is_set: bool = False  # event: the flag
     lock: str | None = None  # condition: id of its associated lock
     notified: int = 0  # condition: signalled waiters not yet resumed
+    broken: bool = False  # barrier: further waits fail until reset
     members: list[str] = field(default_factory=list)  # taskgroup: tasks
     running: int = 0  # taskgroup: member tasks not finished
 

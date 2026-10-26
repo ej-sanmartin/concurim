@@ -22,10 +22,10 @@ with items 6 and 7 in hand.*
 > **Status: 0.1 (alpha).** Threads, `queue.Queue`, locks, semaphores,
 > `ThreadPoolExecutor`, `ProcessPoolExecutor` and asyncio (tasks, queues,
 > locks), recorded automatically or with Concurim-managed primitives.
-> Events, conditions, `asyncio.TaskGroup`, `multiprocessing` (`Pool`,
-> `Process`), a lineage browser, a resources layout, run comparison
-> (`concurim compare`) and video export (`concurim export`) are included.
-> Barriers are planned. See
+> Events, conditions, barriers (`threading` and `asyncio`),
+> `asyncio.TaskGroup`, `multiprocessing` (`Pool`, `Process`), a lineage
+> browser, a resources layout, run comparison (`concurim compare`) and
+> video export (`concurim export`) are included. See
 > [what is and is not observed](docs/limitations.md).
 
 ## Try it

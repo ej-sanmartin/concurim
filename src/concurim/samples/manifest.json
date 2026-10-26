@@ -135,6 +135,19 @@
       "auto": "sync"
     },
     {
+      "id": "barrier",
+      "title": "threading.Barrier",
+      "observability": "sync",
+      "summary": "Three workers arrive at a barrier. The first two wait; the third releases all of them together.",
+      "watch": [
+        "The first arrivals wait; the last one releases everyone together",
+        "Nobody continues until all three have arrived"
+      ],
+      "source": "barrier.py",
+      "trace": "barrier.concurim",
+      "auto": "sync"
+    },
+    {
       "id": "condition-mailbox",
       "title": "threading.Condition",
       "observability": "sync",
@@ -281,10 +294,5 @@
       "auto": "asyncio"
     }
   ],
-  "planned": [
-    {
-      "title": "Barriers",
-      "needs": "barrier instrumentation"
-    }
-  ]
+  "planned": []
 }

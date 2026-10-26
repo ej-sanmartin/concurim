@@ -87,6 +87,14 @@ class EventType:
     CONDITION_WAIT_COMPLETED = "condition.wait.completed"
     CONDITION_WAIT_TIMEOUT = "condition.wait.timeout"
     CONDITION_WAIT_FAILED = "condition.wait.failed"
+    # threading.Barrier / asyncio.Barrier
+    BARRIER_CREATED = "barrier.created"
+    BARRIER_WAIT_STARTED = "barrier.wait.started"
+    BARRIER_WAIT_BLOCKED = "barrier.wait.blocked"
+    BARRIER_WAIT_COMPLETED = "barrier.wait.completed"
+    BARRIER_WAIT_FAILED = "barrier.wait.failed"
+    BARRIER_ABORT = "barrier.abort"
+    BARRIER_RESET = "barrier.reset"
     # asyncio.TaskGroup
     TASKGROUP_CREATED = "taskgroup.created"
     TASKGROUP_TASK_ADDED = "taskgroup.task.added"

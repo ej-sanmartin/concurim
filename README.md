@@ -59,7 +59,8 @@ uv run concurim export run.concurim -o clip.mp4 --view code --events 5:40
 The viewer's **Export…** button opens the same options in a dialog.
 `export` also writes `.webm`, `.gif`, or a directory of PNG frames
 (`--hide explanation|timeline`, `--size 1080p`, `--motion 0`,
-`--no-footer`). Items glide between events. It needs a
+`--no-footer`, `--no-watermark`). Items glide between events, and the
+logo sits in the top-left unless you turn it off. It needs a
 Chrome-family browser and ffmpeg (`pip install 'concurim[video]'` bundles
 one); the picture is deterministic for a given trace. It only loads the
 trace; it never runs your program.

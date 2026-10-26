@@ -220,6 +220,12 @@ export function Viewer({
         <ExportDialog caps={exportCaps} view={mode} index={pb.index}
           total={replay.events.length} onClose={() => setExporting(false)} />
       )}
+      {capture?.watermark && (
+        <div className="watermark" data-testid="watermark">
+          <img src="logo.png" alt="" width={22} height={22} />
+          <span>Concurim</span>
+        </div>
+      )}
       {capture ? (
         capture.footer && <footer className="capture-footer"
           data-testid="capture-footer">{capture.footer}</footer>

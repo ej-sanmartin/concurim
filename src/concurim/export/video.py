@@ -105,6 +105,7 @@ def export_video(
             "view": options.view,
             "overlays": ",".join(options.overlays),
             "motion": str(options.motion_ms),
+            "watermark": "1" if options.watermark else "0",
             "footer": _footer(name, start, end, total, server.session.digest)
             if options.footer
             else "",

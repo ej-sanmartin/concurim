@@ -25,6 +25,8 @@ describe("export form", () => {
     const r = toRequest(f);
     expect(r.overlays).toEqual(["explanation"]);
     expect(r.motion_ms).toBe(400);
+    expect(r.watermark).toBe(true);
+    expect(toRequest({ ...f, watermark: false }).watermark).toBe(false);
     expect(toRequest({ ...f, smooth: false }).motion_ms).toBe(0);
   });
 

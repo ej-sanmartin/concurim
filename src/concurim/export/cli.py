@@ -56,6 +56,11 @@ def add_parser(sub: argparse._SubParsersAction) -> None:
         help="leave out an overlay (repeatable)",
     )
     cmd.add_argument("--no-footer", action="store_true")
+    cmd.add_argument(
+        "--no-watermark",
+        action="store_true",
+        help="leave the logo and name off the picture",
+    )
     cmd.add_argument("--theme", choices=THEMES, default="dark")
     cmd.set_defaults(func=run)
 
@@ -85,6 +90,7 @@ def run(args: argparse.Namespace) -> int:
             hold=args.hold,
             motion_ms=args.motion,
             footer=not args.no_footer,
+            watermark=not args.no_watermark,
             overlays=tuple(o for o in OVERLAYS if o not in args.hide),
             theme=args.theme,
         )

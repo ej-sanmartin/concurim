@@ -12,11 +12,13 @@ describe("readCapture", () => {
     expect([...c.overlays]).toEqual(["timeline"]);
     expect(c.footer).toBe("hi");
     expect(c.motionMs).toBe(0);
+    expect(c.watermark).toBe(true);
   });
 
   it("falls back to the animation for an unknown view", () => {
     expect(readCapture("?capture=1&view=nope")!.view).toBe("animation");
     expect(readCapture("?capture=1")!.overlays.size).toBe(0);
+    expect(readCapture("?capture=1&watermark=0")!.watermark).toBe(false);
   });
 });
 

@@ -11,6 +11,8 @@ export interface CaptureOptions {
   overlays: Set<string>;
   /** Text burned into the footer; empty means no footer. */
   footer: string;
+  /** Logo and name in the top-left corner. */
+  watermark: boolean;
   /** How long the glide between two events lasts, in milliseconds. */
   motionMs: number;
 }
@@ -52,6 +54,7 @@ export function readCapture(search: string): CaptureOptions | null {
     view: VIEWS.includes(view) ? view : "animation",
     overlays: new Set((q.get("overlays") ?? "").split(",").filter(Boolean)),
     footer: (q.get("footer") ?? "").slice(0, 200),
+    watermark: q.get("watermark") !== "0",
     motionMs: Math.min(2000, Math.max(0, Number(q.get("motion") ?? 0) || 0)),
   };
 }

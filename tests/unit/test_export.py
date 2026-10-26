@@ -55,6 +55,8 @@ def test_options_reject_out_of_range_values():
 def test_web_request_is_validated_and_defaults_apply():
     options, fmt = options_from_request({})
     assert (fmt, options.view, options.motion_ms) == ("mp4", "animation", 400)
+    assert options.watermark is True
+    assert options_from_request({"watermark": False})[0].watermark is False
     options, fmt = options_from_request(
         {"format": "gif", "size": "square", "end": 9, "overlays": []}
     )

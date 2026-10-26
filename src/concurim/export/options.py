@@ -30,6 +30,7 @@ class ExportOptions:
     motion_ms: int = 400
     overlays: tuple[str, ...] = OVERLAYS
     footer: bool = True
+    watermark: bool = True
     theme: str = "dark"
 
     def __post_init__(self) -> None:
@@ -90,6 +91,7 @@ def options_from_request(data: dict[str, Any]) -> tuple[ExportOptions, str]:
             motion_ms=int(data.get("motion_ms", 400)),
             overlays=tuple(str(o) for o in data.get("overlays", OVERLAYS)),
             footer=bool(data.get("footer", True)),
+            watermark=bool(data.get("watermark", True)),
             theme=str(data.get("theme", "dark")),
         )
     except (TypeError, ValueError) as error:

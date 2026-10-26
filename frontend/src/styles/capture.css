@@ -1,5 +1,8 @@
 /* ---- capture mode (video export): see capture.ts ---- */
-.app[data-capture] { grid-template-rows: minmax(0, 1fr) auto auto; }
+.app[data-capture] {
+  position: relative;
+  grid-template-rows: minmax(0, 1fr) auto auto;
+}
 .app[data-capture] > .top { display: none; }
 .app[data-capture] *, .app[data-capture] *::before, .app[data-capture] *::after {
   animation: none !important; /* looping pulses: never reproducible */
@@ -17,6 +20,35 @@
 }
 .app[data-capture] .flow-toolbar, .app[data-capture] .react-flow__controls,
 .app[data-capture] .react-flow__attribution { display: none; }
+/* Top-left: the header is hidden, the legend is bottom-left, and the
+   explanation card is on the right, so this corner stays clear. */
+.watermark {
+  position: absolute; z-index: 8; top: 16px; left: 18px;
+  display: flex; align-items: center; gap: 7px;
+  pointer-events: none;
+  font-size: 14px; font-weight: 600; letter-spacing: 0.02em; line-height: 1;
+  color: var(--text);
+  text-shadow: 0 1px 3px color-mix(in srgb, var(--bg) 85%, transparent);
+}
+.watermark img { display: block; }
+/* The mark is near-black; on a dark picture it has to be light. */
+html[data-theme="dark"] .watermark img { filter: invert(1); }
+
+/* Code column: the block sits in the middle, with room around it,
+   instead of stretching to the edges of the frame. */
+.app[data-capture][data-mode="code"] .side {
+  justify-content: safe center;
+  padding: 28px 36px 28px 20px;
+  overflow: hidden;
+}
+.app[data-capture][data-mode="code"] .explanation { flex: none; }
+.app[data-capture][data-mode="code"] .codeview {
+  flex: 0 1 auto; min-height: 0; max-height: 100%;
+}
+.app[data-capture][data-mode="code"] .codeview .code {
+  flex: 0 1 auto; max-height: 100%; padding-block: 10px;
+}
+
 .capture-footer {
   padding: 6px 16px; font-size: 12px; color: var(--muted);
   border-top: 1px solid var(--border); background: var(--panel);

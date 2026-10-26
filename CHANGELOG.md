@@ -11,7 +11,8 @@ asyncio.
 - Viewer: **Lineage** tab, **Resources** layout, `concurim compare` (side by
   side, GIL on/off, facts only), and `concurim export` (mp4/webm/gif/PNG,
   deterministic frames with smooth, reproducible motion, optional
-  `concurim[video]` for ffmpeg), plus an **Export…** dialog in the viewer.
+  `concurim[video]` for ffmpeg), plus an **Export…** dialog in the viewer,
+  with an optional logo watermark in the top-left.
 - Observability levels `sync` (`threading.Lock/RLock/Semaphore/
   BoundedSemaphore`, `ThreadPoolExecutor`) and `asyncio` (tasks, `Queue`,
   `Lock`, `Semaphore`); managed `TracedLock`, `TracedRLock`,

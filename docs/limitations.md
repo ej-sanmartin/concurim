@@ -109,6 +109,8 @@
   UI: format, view, overlays, event range, size, pace and theme. The server
   renders one clip at a time into a private temporary folder, and the file
   downloads from the dialog. The footer hash is of the replay document.
+  A watermark (logo, then “Concurim”) sits in the top-left; turn it off
+  in the dialog or with `--no-watermark`.
 - A clip shows what the picture shows: review paths, thread names and source
   before sharing. No captions yet.
 

@@ -63,6 +63,10 @@ export function ExportFields({ form, caps, total, current, onChange }: Props) {
             data-testid="export-footer"
             onChange={(e) => onChange({ footer: e.target.checked })} />
             Footer (name, events, hash)</label>
+          <label><input type="checkbox" checked={form.watermark}
+            data-testid="export-watermark"
+            onChange={(e) => onChange({ watermark: e.target.checked })} />
+            Watermark (logo and name)</label>
         </div>
       </fieldset>
 

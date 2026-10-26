@@ -57,6 +57,7 @@ export interface ExportRequest {
   motion_ms: number;
   overlays: string[];
   footer: boolean;
+  watermark: boolean;
   theme: string;
 }
 

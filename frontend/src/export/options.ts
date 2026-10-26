@@ -19,6 +19,8 @@ export interface ExportForm {
   explanation: boolean;
   timeline: boolean;
   footer: boolean;
+  /** Logo and the name, in the top-left of the picture. */
+  watermark: boolean;
   theme: "dark" | "light";
 }
 
@@ -55,6 +57,7 @@ export function defaultForm(
     format: caps && !caps.ffmpeg ? "png" : "mp4",
     view, start: 1, end: total, size: "720p", fps: 30, hold: 1.2,
     smooth: true, explanation: true, timeline: true, footer: true,
+    watermark: true,
     theme: "dark",
   };
 }
@@ -69,7 +72,7 @@ export function toRequest(f: ExportForm): ExportRequest {
       ...(f.explanation ? ["explanation"] : []),
       ...(f.timeline ? ["timeline"] : []),
     ],
-    footer: f.footer, theme: f.theme,
+    footer: f.footer, watermark: f.watermark, theme: f.theme,
   };
 }
 

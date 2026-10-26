@@ -17,6 +17,7 @@ test("the export button opens a dialog whose options update the summary", async 
   await page.getByTestId("open-export").click();
   const dialog = page.getByTestId("export-dialog");
   await expect(dialog).toBeVisible();
+  await expect(page.getByTestId("export-watermark")).toBeChecked();
   const summary = page.getByTestId("export-summary");
   await expect(summary).toContainText("events");
   await page.getByTestId("export-start").fill("5");

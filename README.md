@@ -22,7 +22,10 @@ with items 6 and 7 in hand.*
 > **Status: 0.1 (alpha).** Threads, `queue.Queue`, locks, semaphores,
 > `ThreadPoolExecutor`, `ProcessPoolExecutor` and asyncio (tasks, queues,
 > locks), recorded automatically or with Concurim-managed primitives.
-> Events/conditions are planned. See
+> Events, conditions, `asyncio.TaskGroup`, `multiprocessing` (`Pool`,
+> `Process`), a lineage browser, a resources layout, run comparison
+> (`concurim compare`) and video export (`concurim export`) are included.
+> Barriers are planned. See
 > [what is and is not observed](docs/limitations.md).
 
 ## Try it
@@ -45,6 +48,19 @@ On the home screen you can:
   **Record execution**. The finished recording opens automatically. A dropped
   program is *never* run until you click, and it runs with your user's
   permissions (there is no sandbox).
+
+### Compare and export
+
+```bash
+uv run concurim compare gil.concurim free-threaded.concurim
+uv run concurim export run.concurim -o clip.mp4 --view code --events 5:40
+```
+
+`export` also writes `.webm`, `.gif`, or a directory of PNG frames
+(`--hide explanation|timeline`, `--size 1080p`, `--no-footer`). It needs a
+Chrome-family browser and ffmpeg (`pip install 'concurim[video]'` bundles
+one); the picture is deterministic for a given trace. It only loads the
+trace; it never runs your program.
 
 ### Observability levels
 

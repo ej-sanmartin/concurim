@@ -145,9 +145,10 @@ function FlowInner(p: FlowViewProps) {
   const edges: Edge[] = useMemo(() => {
     const make = (
       id: string, from: string, to: string, active: boolean, sourceHandle = "out",
+      targetHandle = "in",
     ): Edge => ({
       id, source: stand(from), target: stand(to),
-      sourceHandle, targetHandle: "in",
+      sourceHandle, targetHandle,
       className: active ? "edge-active" : "edge-idle",
       markerEnd: {
         type: MarkerType.ArrowClosed, width: 16, height: 16,
@@ -164,9 +165,12 @@ function FlowInner(p: FlowViewProps) {
     const syncEdges = layout.syncEdges.map((e) => make(
       `${e.thread}-${e.sync}-sync`, e.thread, e.sync,
       event.resource_id === e.sync && actorOf(event) === e.thread, "down"));
+    const linkEdges = layout.syncLinks.map((l) => make(
+      `${l.condition}-${l.lock}-link`, l.condition, l.lock,
+      event.resource_id === l.condition, "side-out", "side-in"));
     // Collapsed groups merge many edges into one.
     const merged = new Map<string, Edge>();
-    for (const e of [...queueEdges, ...syncEdges]) {
+    for (const e of [...queueEdges, ...syncEdges, ...linkEdges]) {
       const k = `${e.source}>${e.target}`;
       if (!merged.has(k) || e.className === "edge-active") merged.set(k, e);
     }

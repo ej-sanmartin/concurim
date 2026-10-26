@@ -14,6 +14,10 @@ const QUICK = new Set([
   "lock.acquire.started",
   "semaphore.created",
   "semaphore.acquire.started",
+  "event.created",
+  "event.wait.started",
+  "condition.created",
+  "taskgroup.created",
   "executor.created",
 ]);
 

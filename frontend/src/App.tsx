@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { domAnimation, LazyMotion, MotionConfig } from "motion/react";
 import { getSession } from "./api/client";
 import type { SessionInfo } from "./api/types";
+import { Compare } from "./compare/Compare";
 import { Home } from "./home/Home";
 import type { Replay } from "./models/replay";
 
@@ -44,7 +45,7 @@ export function App() {
   const [theme, toggleTheme] = useTheme();
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [shown, setShown] = useState<Shown | null>(null);
-  const [view, setView] = useState<"home" | "viewer">("home");
+  const [view, setView] = useState<"home" | "viewer" | "compare">("home");
   const [error, setError] = useState<string | null>(null);
 
   const open = useCallback(async () => {
@@ -66,6 +67,7 @@ export function App() {
         // Show Home only when there is nothing to open (no flash of Home).
         if (info.has_trace) return open();
         setSession(info);
+        if (new URLSearchParams(location.search).has("compare")) setView("compare");
       });
     boot.catch((e) => setError(String(e)));
   }, [open]);
@@ -89,8 +91,12 @@ export function App() {
       )
       : <Viewer key={shown.generation} replay={shown.replay} label={shown.label}
         theme={theme} onToggleTheme={toggleTheme} onHome={() => goHome().catch(fail)} />;
+  } else if (view === "compare" && session) {
+    body = <Compare session={session} onToggleTheme={toggleTheme}
+      onHome={() => goHome().catch(fail)} />;
   } else if (session) {
     body = <Home session={session} onToggleTheme={toggleTheme}
+      onCompare={() => setView("compare")}
       onOpenTrace={() => open().catch(fail)}
       onBack={shown ? () => setView("viewer") : null} />;
   } else {

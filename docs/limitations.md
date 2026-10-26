@@ -24,8 +24,12 @@
   (for example `asyncio.sleep`) is shown as "suspended (awaiting)". Tasks
   started eagerly (`eager_task_factory`) lose their first step, and `uvloop`
   is not supported.
-- `ThreadPoolExecutor`: submit, task start/finish/failure and shutdown are
-  recorded; `Future` callbacks, `cancel()` and `as_completed` ordering are not.
+- `ThreadPoolExecutor`: submit, task start/finish/failure, `Future.cancel()`,
+  done-callbacks, `as_completed`/`wait` hand-backs and shutdown are recorded.
+  Only futures created by an instrumented executor are followed.
+- `threading.Event`/`Condition` and `asyncio.Event`/`Condition`/`TaskGroup` are
+  recorded from `sync` and `asyncio` on. A patched `threading.Event` is a
+  Concurim object, so `isinstance(x, threading.Event)` is false for it.
 - A program that uses nothing the chosen level can see records zero events.
 - One run at a time; a run cannot read stdin. Output is capped at 256 KiB.
 
@@ -49,8 +53,7 @@
   the code view. Thread status "running (not blocked)" is therefore
   **inferred** and drawn with a dashed border.
 - Which item `task_done()` refers to, unless `object_id=` is passed.
-- `multiprocessing` (`Pool`, `Process`), `threading.Event`, `Condition`,
-  `Barrier`, `asyncio.Event`/`Condition` (later milestones).
+- `threading.Barrier`, `multiprocessing.Manager` objects (later milestones).
 - `LifoQueue`/`PriorityQueue` (items are wrapped in an envelope, which would
   break priority comparison); `SimpleQueue` (no hooks).
 
@@ -64,7 +67,45 @@
   `child_ns` but never compared across processes.
 - Tasks, arguments and results are pickled by Python as usual; the pool's
   internal threads and queues are hidden.
-- Other process APIs (`multiprocessing.Pool`, `Process`) are not covered.
+
+## multiprocessing (`Pool`, `Process`)
+
+- `Process` (start, run, exit, join) and `Pool` (`apply_async`, `map`,
+  `starmap`, `imap`, `imap_unordered`, `close`, `terminate`, `join`) are
+  recorded from `sync` on. Pool tasks flow like executor tasks.
+- Arguments are classified **copied** (pickled for the child) or **shared**
+  (shared memory, `Value`/`Array`, proxies, semaphores, events, queues,
+  pipes), one level into containers. Sizes need an extra `pickle.dumps` of
+  each argument, a real cost for large data.
+- `Pool.map`/`starmap` rely on the private `_map_async`. `AsyncResult.get()`
+  and pool callbacks are not observed. Call `join()` so the last reports
+  from children are collected.
+- `from multiprocessing import Pool` done *before* recording binds the
+  untraced class; use `multiprocessing.Pool(...)` or import after recording
+  starts.
+- Timing and clocks follow the same rules as `ProcessPoolExecutor`.
+
+## Run comparison and the GIL
+
+- **Compare** shows two recordings side by side with facts only: Python
+  version, free-threaded build, GIL state at runtime, wall time, events, and
+  the most work spans **observed open at once**. That last number is not CPU
+  parallelism, and no GIL-ownership timeline is ever drawn: Python-level
+  events cannot show it. Differences between builds are not attributed to
+  the GIL alone (versions, load and caches differ too).
+
+## Video export
+
+- `concurim export` renders the real viewer in a headless Chrome-family
+  browser (Chrome, Edge, Chromium, Brave; `$CONCURIM_BROWSER` overrides) and
+  encodes with ffmpeg (on `PATH`, or `pip install 'concurim[video]'`). macOS
+  and Linux only.
+- Frames are exact: each shows one event's state with no tweens or looping
+  animation, so the same trace gives identical frames on one machine and
+  browser. Pixels (fonts, anti-aliasing) can differ between machines. Items
+  jump between places rather than glide.
+- A clip shows what the picture shows: review paths, thread names and source
+  before sharing. No captions yet.
 
 ## Code view
 
@@ -121,10 +162,7 @@
 - Large graphs: groups of 4 or more similar workers can be collapsed
   (**Group workers**; automatic above 24 actors). Runs of repeating events in
   the log fold into one row (`×N`).
-- Not yet: video export.
-
 ## Roadmap (not implemented)
 
-Events/conditions/barriers · `multiprocessing.Pool` and a GIL/free-threaded
-comparison · layout modes, lineage browser, video export (Manim stays
-optional).
+Barriers · smooth in-between motion in videos and captions · live view ·
+Perfetto/VizTracer import · editor extension.

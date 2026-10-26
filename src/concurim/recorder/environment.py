@@ -40,8 +40,9 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
     """
     rank = LEVELS.index(auto)
     observed = [
-        "Operations on concurim.TracedQueue, TracedLock, TracedSemaphore "
-        "and TracedThreadPoolExecutor, when the program uses them",
+        "Operations on concurim.TracedQueue, TracedLock, TracedSemaphore, "
+        "TracedEvent, TracedCondition and TracedThreadPoolExecutor, when "
+        "the program uses them",
         "Lifecycle of concurim.TracedThread, when used",
         "Explicit concurim.work() spans and lineage annotations, when used",
         "With source included: the line each worker is on, sampled every "
@@ -53,7 +54,6 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         "sampled line (short-lived lines can be missed)",
         "Anything inside child processes; multiprocessing is seen only "
         "through ProcessPoolExecutor, at the sync level and above",
-        "threading.Event and Condition operations",
     ]
     if rank >= 1:
         observed.append(
@@ -76,7 +76,8 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         )
     if rank >= 3:
         observed.append(
-            "threading Lock, RLock, Semaphore, BoundedSemaphore, "
+            "threading Lock, RLock, Semaphore, BoundedSemaphore, Event, "
+            "Condition, "
             "ThreadPoolExecutor and ProcessPoolExecutor (submit, and task "
             "start/end as reported by each worker process) created by the "
             "program's own code"
@@ -87,14 +88,15 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
         )
     else:
         not_observed.append(
-            "Plain threading locks, semaphores and executors (use the sync "
-            "instrumentation level, or the Traced* classes)"
+            "Plain threading locks, semaphores, events, conditions and "
+            "executors (use the sync instrumentation level, or the Traced* "
+            "classes)"
         )
     if rank >= 4:
         observed.append(
             "asyncio tasks (creation, each step the event loop runs, end) "
-            "and asyncio Queue, Lock, Semaphore and BoundedSemaphore "
-            "created during the run"
+            "and asyncio Queue, Lock, Semaphore, BoundedSemaphore, Event "
+            "and Condition created during the run"
         )
         not_observed.append(
             "What an asyncio task awaits when it is not one of the above "

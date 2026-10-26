@@ -5,6 +5,7 @@ import "./styles/theme.css";
 import "./styles/app.css";
 import "./styles/flow.css";
 import "./styles/home.css";
+import "./styles/capture.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

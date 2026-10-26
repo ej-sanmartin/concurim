@@ -88,11 +88,30 @@ the submitted task and `operation_id`), `executor.task.{started,finished,failed}
 (on the worker thread), `executor.shutdown` (`wait`, `cancel_futures`). The
 replay draws an executor as a queue of pending tasks.
 
+The same family also records `executor.task.cancelled` (a pending task was
+cancelled), `executor.callback` (a done-callback ran) and `executor.collected`
+(`as_completed`/`wait` handed a task back). For `ProcessPoolExecutor`,
+`multiprocessing.Pool` and `Process`, submit events carry `copied_args`,
+`shared_args`, `copied_bytes` and `shared_types` in `metadata` (what was
+pickled for the child versus what is shared memory or a synchronization
+object), and finished events carry `result_bytes`. `thread.start.requested`
+has `process: true` for a `Process`.
+
+### Event and condition events
+
+`event.created`, `event.set`, `event.cleared`, `event.wait.{started,blocked,
+completed,timeout,failed}` for `threading.Event` and `asyncio.Event`;
+`condition.created`, `condition.notify` (`count`, `all`),
+`condition.wait.{started,completed,timeout,failed}` for `threading.Condition`
+and `asyncio.Condition`. A condition's lock is recorded as its own lock.
+
 ### asyncio task events
 
 `task.created`, `task.step.{started,ended}` (one per run of the task by the
 event loop; `ended` has `done`), `task.finished`, `task.failed`,
-`task.cancelled`. These events carry `task_id` and `thread_id` (the loop's
+`task.cancelled`. `asyncio.TaskGroup` adds `taskgroup.created`,
+`taskgroup.task.added` (`child`), `taskgroup.exit.started` (`running`,
+`body_error`) and `taskgroup.exit.completed` (`error`). These events carry `task_id` and `thread_id` (the loop's
 thread); the replay treats `task_id` (else `thread_id`) as the *actor*. Within
 one loop at most one task has an open step at any time.
 
@@ -110,7 +129,7 @@ these to `line_samples` and leaves them out of `events`).
 `concurim.build_replay(trace)` (also served at `/api/replay`) returns the
 events plus one *frame* per event: changed entity states (`threads` for
 threads and asyncio tasks, `queues` for queues and executors, `syncs` for
-locks and semaphores; a waiting actor has `waiting_on: {resource, op}`), an explanation
+locks, semaphores, events, conditions and task groups; a waiting actor has `waiting_on: {resource, op}`), an explanation
 `{title, text, tone, inferred[]}`, and an optional `motion`. Queue frames carry
 `size` (true occupancy) and at most the first 64 `items`. The same trace
 always produces the same document.

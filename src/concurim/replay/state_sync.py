@@ -41,8 +41,10 @@ def _completed(red: Any, ev, app, th):
     s = red.sync(ev, app)
     app.facts["was_blocked"] = _end_wait(s, th, ev)
     app.facts["held_by_others"] = list(s.holders)
-    s.holders.append(th.id)
-    s.value = max(0, s.value - 1)
+    # A Condition wake-up re-acquires every level the wait released.
+    levels = max(1, int(ev.metadata.get("count", 1) or 1))
+    s.holders.extend([th.id] * levels)
+    s.value = max(0, s.value - levels)
     app.facts.update(acquired=th.id, value=s.value)
 
 

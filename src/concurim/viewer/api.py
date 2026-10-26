@@ -78,6 +78,7 @@ def _session(srv: ViewerServer, *_: object) -> Response:
             "has_trace": srv.session.has_trace,
             "label": srv.session.label,
             "generation": srv.session.generation,
+            "compare": {k: s.label for k, s in srv.compare.items()},
             "samples": [{k: s[k] for k in keys} for s in manifest["samples"]],
             "planned": manifest["planned"],
             "interpreters": interpreters.discover(srv.project_dir),
@@ -127,6 +128,23 @@ def _trace_upload(
     return ok({"ok": True})
 
 
+def _compare_upload(
+    srv: ViewerServer, m: re.Match[str], query: dict[str, str], body: bytes
+) -> Response:
+    name = re.sub(r"[^\w .-]", "", query.get("name", ""))[:80] or "trace"
+    srv.compare[m["slot"]].load(load_trace(io.BytesIO(body)), name)
+    return ok({"ok": True})
+
+
+def _compare_replay(
+    srv: ViewerServer, m: re.Match[str], *_: object
+) -> Response:
+    replay = srv.compare[m["slot"]].replay_json
+    if replay is None:
+        raise ApiError(404, "no trace loaded in this slot")
+    return Response(200, replay)
+
+
 def _workspace_create(
     srv: ViewerServer, _m: Any, _q: Any, body: bytes
 ) -> Response:
@@ -157,6 +175,13 @@ ROUTES: list[tuple[str, str, Handler, int]] = [
     ("GET", r"/api/samples/(?P<id>[\w%.-]+)/source", _sample_source, 0),
     ("POST", r"/api/samples/(?P<id>[\w%.-]+)/open", _sample_open, 0),
     ("POST", r"/api/trace", _trace_upload, MAX_TRACE_UPLOAD),
+    (
+        "POST",
+        r"/api/compare/(?P<slot>[ab])/trace",
+        _compare_upload,
+        MAX_TRACE_UPLOAD,
+    ),
+    ("GET", r"/api/compare/(?P<slot>[ab])/replay", _compare_replay, 0),
     ("POST", r"/api/workspaces", _workspace_create, MAX_UPLOAD_JSON),
     ("POST", r"/api/runs/plan", _run_plan, MAX_SMALL_JSON),
     ("POST", r"/api/runs/(?P<id>\w+)/start", _run_start, MAX_SMALL_JSON),

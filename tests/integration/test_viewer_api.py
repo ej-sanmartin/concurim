@@ -131,3 +131,31 @@ def test_every_response_carries_security_headers(client):
     assert "default-src 'self'" in headers["Content-Security-Policy"]
     assert headers["Cross-Origin-Resource-Policy"] == "same-origin"
     assert headers["X-Content-Type-Options"] == "nosniff"
+
+
+def test_two_recordings_can_be_loaded_for_comparison_without_the_session(
+    client,
+):
+    assert client.get_json("/api/session")["compare"] == {"a": None, "b": None}
+    assert client.request("GET", "/api/compare/a/replay")[0] == 404
+    for slot, name in (("a", "shutdown"), ("b", "semaphore")):
+        raw = (SAMPLES_DIR / f"{name}.concurim").read_bytes()
+        status, _ = client.post_json(
+            f"/api/compare/{slot}/trace?name={name}", raw
+        )
+        assert status == 200
+    shown = client.get_json("/api/session")
+    assert shown["compare"] == {"a": "shutdown", "b": "semaphore"}
+    assert shown["has_trace"] is False  # the main viewer is untouched
+    first = client.get_json("/api/compare/a/replay")
+    second = client.get_json("/api/compare/b/replay")
+    assert first["summary"]["event_count"] != second["summary"]["event_count"]
+    assert first["metadata"]["environment"]["python_version"]
+
+
+def test_compare_uploads_need_the_token_and_reject_junk_and_other_slots(client):
+    raw = (SAMPLES_DIR / "shutdown.concurim").read_bytes()
+    path = "/api/compare/a/trace?name=x"
+    assert client.post_json(path, raw, token=None)[0] == 403
+    assert client.post_json(path, b"not a zip")[0] == 400
+    assert client.post_json("/api/compare/c/trace", raw)[0] == 404

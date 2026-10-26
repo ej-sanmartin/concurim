@@ -4,7 +4,7 @@ export const CATEGORY_LABEL: Record<string, string> = {
   stage: "Stages",
   other: "Other threads",
   queue: "Queues",
-  lock: "Locks",
+  lock: "Locks & events",
   item: "Items",
 };
 

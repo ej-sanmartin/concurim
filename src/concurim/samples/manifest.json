@@ -28,6 +28,21 @@
       "auto": "none"
     },
     {
+      "id": "lineage-pipeline",
+      "title": "Item lineage",
+      "observability": "managed",
+      "summary": "Pages are split into sentences and sentences into word counts; every new item records which item it came from.",
+      "watch": [
+        "Open the Lineage tab and pick any item",
+        "Walk from a word count back to the page it came from",
+        "Click an item to jump to the moment it was created"
+      ],
+      "source": "lineage_pipeline.py",
+      "trace": "lineage-pipeline.concurim",
+      "auto": "none",
+      "preview": true
+    },
+    {
       "id": "shutdown",
       "title": "Cancellation and shutdown",
       "observability": "managed",
@@ -80,6 +95,20 @@
       "auto": "sync"
     },
     {
+      "id": "lock-order",
+      "title": "Lock ordering (wait cycle)",
+      "observability": "sync",
+      "summary": "Two threads take two locks in opposite order and wait for each other until a timeout ends the standoff.",
+      "watch": [
+        "Open the Resources view to see who holds and who waits",
+        "Each thread holds the lock the other one wants",
+        "Both waits end with a timeout, not a result"
+      ],
+      "source": "lock_order.py",
+      "trace": "lock-order.concurim",
+      "auto": "sync"
+    },
+    {
       "id": "semaphore",
       "title": "Semaphore limit",
       "observability": "sync",
@@ -90,6 +119,32 @@
       ],
       "source": "semaphore_limit.py",
       "trace": "semaphore.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "event-gate",
+      "title": "threading.Event",
+      "observability": "sync",
+      "summary": "Three runners wait at a gate until the starter sets an event; a later timed wait gives up.",
+      "watch": [
+        "Waiting threads block until the event is set, then continue on their own schedule",
+        "A timed wait on an unset event times out"
+      ],
+      "source": "event_gate.py",
+      "trace": "event-gate.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "condition-mailbox",
+      "title": "threading.Condition",
+      "observability": "sync",
+      "summary": "Two readers sleep on a condition; a poster adds messages and notifies.",
+      "watch": [
+        "notify() does not release the lock: the poster still holds it",
+        "A woken reader must re-acquire the lock before it continues"
+      ],
+      "source": "condition_mailbox.py",
+      "trace": "condition-mailbox.concurim",
       "auto": "sync"
     },
     {
@@ -106,6 +161,34 @@
       "auto": "sync"
     },
     {
+      "id": "cpu-threads",
+      "title": "CPU-bound threads (compare builds)",
+      "observability": "sync",
+      "summary": "Four pool threads count primes. Record it under a standard and a free-threaded Python, then compare the two.",
+      "watch": [
+        "On a standard build the tasks take turns running Python code",
+        "Use Compare to put two recordings on one time scale",
+        "The viewer shows task start and end, never GIL ownership"
+      ],
+      "source": "cpu_threads.py",
+      "trace": "cpu-threads.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "future-control",
+      "title": "Future cancel, callbacks and as_completed",
+      "observability": "sync",
+      "summary": "Four tasks on two workers: one queued task is cancelled, a callback runs on a worker, and results come back in completion order.",
+      "watch": [
+        "A cancelled task leaves the queue and never starts",
+        "The callback runs on the worker thread that finished the task",
+        "as_completed returns tasks in the order they finish"
+      ],
+      "source": "future_control.py",
+      "trace": "future-control.concurim",
+      "auto": "sync"
+    },
+    {
       "id": "process-pool",
       "title": "ProcessPoolExecutor",
       "observability": "sync",
@@ -116,6 +199,32 @@
       ],
       "source": "process_pool.py",
       "trace": "process-pool.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "process-pool-map",
+      "title": "multiprocessing.Pool",
+      "observability": "sync",
+      "summary": "Pool.map sends six items to two worker processes; each item is one task.",
+      "watch": [
+        "Each item is a task that waits in the pool, runs in a worker process and returns a copy of its result",
+        "Click a task submission to see how big its copied argument was"
+      ],
+      "source": "process_pool_map.py",
+      "trace": "process-pool-map.concurim",
+      "auto": "sync"
+    },
+    {
+      "id": "process-share",
+      "title": "Process: copied vs shared",
+      "observability": "sync",
+      "summary": "Three child processes get a list (copied) and a counter (shared); only the counter changes for the parent.",
+      "watch": [
+        "The start request says which argument is copied and which is shared",
+        "Each child is its own process with its own memory"
+      ],
+      "source": "process_share.py",
+      "trace": "process-share.concurim",
       "auto": "sync"
     },
     {
@@ -132,6 +241,20 @@
       "auto": "asyncio"
     },
     {
+      "id": "task-group",
+      "title": "asyncio.TaskGroup",
+      "observability": "asyncio",
+      "summary": "Three tasks share one async-with block. One fails, so the group cancels the others and raises an ExceptionGroup.",
+      "watch": [
+        "The parent waits at the end of the block until every task ends",
+        "A failing task cancels its siblings",
+        "The errors are raised together as one group"
+      ],
+      "source": "task_group.py",
+      "trace": "task-group.concurim",
+      "auto": "asyncio"
+    },
+    {
       "id": "asyncio-queue",
       "title": "asyncio.Queue",
       "observability": "asyncio",
@@ -143,12 +266,25 @@
       "source": "asyncio_queue.py",
       "trace": "asyncio-queue.concurim",
       "auto": "asyncio"
+    },
+    {
+      "id": "asyncio-condition",
+      "title": "asyncio.Condition",
+      "observability": "asyncio",
+      "summary": "Two tasks wait for a counter to reach a target; a ticker notifies them after each tick.",
+      "watch": [
+        "Waiting tasks are suspended, not blocked, while others run",
+        "A notified task re-acquires the lock and re-checks its predicate"
+      ],
+      "source": "asyncio_condition.py",
+      "trace": "asyncio-condition.concurim",
+      "auto": "asyncio"
     }
   ],
   "planned": [
     {
-      "title": "Events and conditions",
-      "needs": "event and condition instrumentation"
+      "title": "Barriers",
+      "needs": "barrier instrumentation"
     }
   ]
 }

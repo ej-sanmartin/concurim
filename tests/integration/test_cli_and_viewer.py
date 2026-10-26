@@ -188,3 +188,24 @@ def test_viewer_never_serves_files_outside_trace_and_static(server, path):
 def test_viewer_rejects_foreign_host_header(server):
     assert get(server, "/api/replay", host="evil.example:80")[0] == 403
     assert get(server, "/api/replay", host="localhost")[0] == 403
+
+
+def test_compare_command_preloads_both_recordings(tmp_path, monkeypatch):
+    seen = {}
+
+    def fake_serve(self):  # stands in for serve_forever
+        seen["compare"] = {k: s.label for k, s in self.compare.items()}
+        seen["has_trace"] = self.session.has_trace
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(ViewerServer, "serve_forever", fake_serve)
+    first, second = (
+        SAMPLES / "shutdown.concurim",
+        SAMPLES / "semaphore.concurim",
+    )
+    assert main(["compare", str(first), str(second), "--no-browser"]) == 0
+    assert seen == {
+        "compare": {"a": first.name, "b": second.name},
+        "has_trace": False,
+    }
+    assert main(["compare", str(first), str(tmp_path / "no.concurim")]) == 2

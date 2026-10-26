@@ -144,6 +144,11 @@ class TracedLock(_Held):
         """Whether the lock is held."""
         return self._lock.locked()
 
+    def _is_owned(self) -> bool:
+        # ``Condition`` asks this on every wait/notify; its default probes
+        # with a real acquire, which would show up as phantom events.
+        return self._lock.locked()
+
     def __enter__(self) -> bool:
         return self.acquire()
 
@@ -192,6 +197,30 @@ class TracedRLock(_Held):
 
     def _is_owned(self) -> bool:
         return self._lock._is_owned()  # ty: ignore[unresolved-attribute]
+
+    def _release_save(self) -> Any:
+        """Release every level at once (``Condition.wait`` uses this)."""
+        rec = active_recorder()
+        if rec is not None and self._is_owned():
+            levels = getattr(self._lock, "_recursion_count", lambda: 1)()
+            self._cz_released(rec, count=levels)
+        return self._lock._release_save()  # ty: ignore[unresolved-attribute]
+
+    def _acquire_restore(self, state: Any) -> None:
+        """Re-acquire every released level (``Condition.wait`` wake-up)."""
+        rec = active_recorder()
+        if rec is None:
+            self._lock._acquire_restore(state)  # ty: ignore[unresolved-attribute]
+            return
+        levels = state[0]
+        op = _Op(rec, self._cz_rid(rec), rec.capture_source())
+        op.emit("lock.acquire.started", blocking=True, timeout=None)
+        if not self._lock.acquire(False):
+            op.emit("lock.acquire.blocked")
+            self._lock.acquire()
+        for _ in range(levels - 1):
+            self._lock.acquire()
+        op.emit("lock.acquire.completed", count=levels)
 
     def locked(self) -> bool:
         """Whether any thread holds it (``Condition`` needs this on 3.14)."""

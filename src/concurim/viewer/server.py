@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import mimetypes
 import secrets
+from collections.abc import Sequence
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -51,12 +52,17 @@ class ViewerServer(ThreadingHTTPServer):
         port: int = 0,
         *,
         label: str = "trace",
+        compare: Sequence[tuple[Trace, str]] = (),
         static_dir: Path = STATIC_DIR,
         project_dir: Path | None = None,
     ) -> None:
         self.session = Session()
         if trace is not None:
             self.session.load(trace, label)
+        # Two recordings shown side by side; independent of ``session``.
+        self.compare = {"a": Session(), "b": Session()}
+        for slot, (loaded, name) in zip("ab", compare, strict=False):
+            self.compare[slot].load(loaded, name)
         self.token = secrets.token_urlsafe(32)
         self.workspaces = Workspaces()
         self.runs = RunManager(self.workspaces, self.session.load)

@@ -5,6 +5,10 @@ from __future__ import annotations
 __version__ = "0.1.0"
 
 from concurim.config import RecorderConfig
+from concurim.instrumentation.aio_events import (
+    TracedAsyncCondition,
+    TracedAsyncEvent,
+)
 from concurim.instrumentation.aio_primitives import (
     TracedAsyncBoundedSemaphore,
     TracedAsyncLock,
@@ -12,6 +16,8 @@ from concurim.instrumentation.aio_primitives import (
     TracedAsyncSemaphore,
 )
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
+from concurim.instrumentation.mp_pool import TracedPool
+from concurim.instrumentation.mp_process import TracedProcess
 from concurim.instrumentation.process_pool import TracedProcessPoolExecutor
 from concurim.instrumentation.queues import QueueItem, TracedQueue
 from concurim.instrumentation.sync import (
@@ -19,6 +25,10 @@ from concurim.instrumentation.sync import (
     TracedLock,
     TracedRLock,
     TracedSemaphore,
+)
+from concurim.instrumentation.sync_events import (
+    TracedCondition,
+    TracedEvent,
 )
 from concurim.instrumentation.threads import TracedThread
 from concurim.instrumentation.work import work
@@ -30,15 +40,21 @@ __all__ = [
     "QueueItem",
     "RecorderConfig",
     "TracedAsyncBoundedSemaphore",
+    "TracedAsyncCondition",
+    "TracedAsyncEvent",
     "TracedAsyncLock",
     "TracedAsyncQueue",
     "TracedAsyncSemaphore",
     "TracedBoundedSemaphore",
+    "TracedCondition",
+    "TracedEvent",
     "TracedLock",
     "TracedQueue",
     "TracedRLock",
     "TracedSemaphore",
     "TracedThread",
+    "TracedPool",
+    "TracedProcess",
     "TracedProcessPoolExecutor",
     "TracedThreadPoolExecutor",
     "__version__",

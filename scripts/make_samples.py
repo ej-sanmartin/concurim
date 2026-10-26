@@ -27,6 +27,7 @@ def record(entry: dict) -> None:
         "--include-source",
         "--auto",
         entry["auto"],
+        *(["--preview"] if entry.get("preview") else []),
         "-o",
         str(out),
         entry["source"],

@@ -21,8 +21,10 @@ from concurim.replay.models import (
 from concurim.replay.models import (
     resume as _resume,
 )
+from concurim.replay.state_events import EVENT_HANDLERS
 from concurim.replay.state_exec import EXEC_HANDLERS
 from concurim.replay.state_sync import SYNC_HANDLERS
+from concurim.replay.state_taskgroup import TASKGROUP_HANDLERS
 
 MAX_WARNINGS = 50
 MAX_HOLDING = 8  # received-but-unfinished items shown per thread
@@ -313,5 +315,7 @@ _HANDLERS = {
     E.QUEUE_SHUTDOWN_REQUESTED: Reducer._shutdown,
     E.QUEUE_ITEM_DISCARDED: Reducer._discarded,
     **SYNC_HANDLERS,
+    **EVENT_HANDLERS,
+    **TASKGROUP_HANDLERS,
     **EXEC_HANDLERS,
 }

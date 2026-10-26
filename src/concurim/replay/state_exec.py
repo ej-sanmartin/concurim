@@ -11,6 +11,7 @@ from typing import Any
 
 from concurim.recorder.events import EventType as E
 from concurim.replay.models import QueueState, ThreadState, resume
+from concurim.replay.state_taskgroup import member_ended
 
 # -- executors ---------------------------------------------------------------
 
@@ -73,6 +74,30 @@ def _ended(red: Any, ev, app, th):
     )
 
 
+def _cancelled(red: Any, ev, app, th):
+    """``Future.cancel()`` on a task that had not started."""
+    q = red.queue(ev, app)
+    oid = ev.object_id or "task-?"
+    pending = oid in q.items
+    if pending:
+        q.items.remove(oid)
+        q.unfinished = max(0, q.unfinished - 1)
+    red.obj(oid, app).phase = "discarded"
+    app.motion = {"object": oid, "from": q.id, "to": None}
+    app.facts.update(
+        was_pending=pending,
+        pending=len(q.items),
+        running=q.running,
+        unfinished=q.unfinished,
+    )
+
+
+def _touch(red: Any, ev, app, th):
+    """Events that explain a task's future without changing any state."""
+    red.queue(ev, app)
+    app.facts["order"] = ev.metadata.get("order")
+
+
 def _shutdown(red: Any, ev, app, th):
     q = red.queue(ev, app)
     cancel = bool(ev.metadata.get("cancel_futures"))
@@ -123,6 +148,7 @@ def _task_end(red: Any, ev, app, th):
         E.TASK_CANCELLED: "cancelled",
     }.get(ev.event_type, "finished")
     th.basis, th.waiting_on, th.work = "observed", None, None
+    member_ended(red, th.id, app)
     for oid in th.holding:
         red.obj(oid, app).phase = "released"
     app.facts["left_holding"] = len(th.holding)
@@ -136,6 +162,9 @@ EXEC_HANDLERS = {
     E.EXECUTOR_TASK_FINISHED: _ended,
     E.EXECUTOR_TASK_FAILED: _ended,
     E.EXECUTOR_SHUTDOWN: _shutdown,
+    E.EXECUTOR_TASK_CANCELLED: _cancelled,
+    E.EXECUTOR_CALLBACK: _touch,
+    E.EXECUTOR_COLLECTED: _touch,
     E.TASK_CREATED: _task_created,
     E.TASK_STEP_STARTED: _step_started,
     E.TASK_STEP_ENDED: _step_ended,

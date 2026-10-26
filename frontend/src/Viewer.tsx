@@ -5,6 +5,8 @@ import { EventDetail } from "./components/EventDetail";
 import { EventLog } from "./components/EventLog";
 import { Explanation } from "./components/Explanation";
 import { Inspector } from "./components/Inspector";
+import { Lineage } from "./components/Lineage";
+import { readCapture, useCaptureBridge } from "./capture";
 import { Timeline } from "./components/Timeline";
 import { TraceInfo } from "./components/TraceInfo";
 import { computeLayout } from "./models/layout";
@@ -15,21 +17,24 @@ import { nextBlocking, nextForSelection } from "./playback/navigation";
 import { useKeyboard, type KeyActions } from "./playback/useKeyboard";
 import { usePlayback } from "./playback/usePlayback";
 import { FlowView } from "./views/FlowView";
+import { ResourceView } from "./views/ResourceView";
 
-type Tab = "event" | "inspect" | "log" | "info";
-type Mode = "animation" | "timeline" | "code";
+type Tab = "event" | "inspect" | "lineage" | "log" | "info";
+type Mode = "animation" | "timeline" | "code" | "resources";
 const MODES: [Mode, string][] = [
-  ["animation", "Animation"], ["code", "Code"], ["timeline", "Timeline"],
+  ["animation", "Animation"], ["code", "Code"], ["resources", "Resources"],
+  ["timeline", "Timeline"],
 ];
 const TABS: [Tab, string][] = [
-  ["event", "Event"], ["inspect", "Inspect"],
+  ["event", "Event"], ["inspect", "Inspect"], ["lineage", "Lineage"],
   ["log", "Log"], ["info", "Trace"],
 ];
 const MODE_KEY = "concurim-mode";
 
 function initialMode(): Mode {
   const saved = localStorage.getItem(MODE_KEY);
-  return saved === "timeline" || saved === "code" ? saved : "animation";
+  return saved === "timeline" || saved === "code" || saved === "resources"
+    ? saved : "animation";
 }
 
 interface Props {
@@ -54,7 +59,9 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
   const pb = usePlayback(replay.events);
   const [selection, setSelection] = useState<Selection>(null);
   const [tab, setTab] = useState<Tab>("event");
-  const [mode, setModeState] = useState<Mode>(initialMode);
+  const capture = useMemo(() => readCapture(location.search), []);
+  const [mode, setModeState] = useState<Mode>(
+    () => capture?.view ?? initialMode());
   const [fitTick, setFitTick] = useState(0);
   const [fullscreen, setFs] = useState(false);
   const appRef = useRef<HTMLDivElement | null>(null);
@@ -80,6 +87,9 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
     setModeState(m);
     localStorage.setItem(MODE_KEY, m);
   };
+  useCaptureBridge(!!capture, replay.events.length, pb.seek);
+  // Videos never tween: each frame is exactly the state of one event.
+  const motionMs = capture ? 0 : pb.motionMs;
   const jump = (to: number | null) => to !== null && pb.seek(to);
   const actions: KeyActions = {
     blocking: (dir) => jump(nextBlocking(replay.events, pb.index, dir)),
@@ -99,7 +109,13 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
   const meta = replay.metadata;
   return (
     <div className="app" data-mode={mode} data-fullscreen={fullscreen || undefined}
-      ref={appRef} style={{ "--dur": `${pb.motionMs}ms` } as React.CSSProperties}>
+      ref={appRef} style={{ "--dur": `${motionMs}ms` } as React.CSSProperties}
+      data-capture={capture ? "" : undefined}
+      data-index={capture ? pb.index : undefined}
+      data-hide-explanation={capture && !capture.overlays.has("explanation")
+        ? "" : undefined}
+      data-hide-timeline={capture && !capture.overlays.has("timeline")
+        ? "" : undefined}>
       <header className="top">
         <div className="brand">
           <button className="link brand-home" onClick={onHome} data-testid="home"
@@ -127,11 +143,14 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
       </header>
       <main className="stage">
         <section className="canvas" aria-label="Execution canvas">
-          {mode !== "timeline" ? (
+          {mode === "resources" ? (
+            <ResourceView replay={replay} world={states[pb.index]}
+              selection={selection} onSelect={select} />
+          ) : mode !== "timeline" ? (
             <>
               <FlowView replay={replay} layout={layout} world={states[pb.index]}
                 frame={frame} event={event} selection={selection}
-                onSelect={select} motionMs={pb.motionMs} theme={theme}
+                onSelect={select} motionMs={motionMs} theme={theme}
                 fitTick={fitTick} />
               <Legend />
               {fullscreen && mode === "animation" && (
@@ -169,6 +188,11 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
             {tab === "inspect" && <Inspector replay={replay}
               world={states[pb.index]} index={pb.index} selection={selection}
               onSeek={pb.seek} />}
+            {tab === "lineage" && <Lineage replay={replay}
+              world={states[pb.index]} index={pb.index} selection={selection}
+              currentObject={event?.object_id ?? null}
+              onFocus={(id) => setSelection({ kind: "object", id })}
+              onSeek={pb.seek} />}
             {tab === "log" && <EventLog replay={replay} index={pb.index} onSeek={pb.seek} />}
             {tab === "info" && <TraceInfo replay={replay} />}
           </div>
@@ -178,10 +202,16 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
       {mode !== "timeline" && (
         <Timeline replay={replay} layout={layout} index={pb.index} onSeek={pb.seek} />
       )}
-      <Controls pb={pb} total={replay.events.length} onToggleTheme={onToggleTheme}
-        onJumpBlocking={actions.blocking} onJumpSelection={actions.selection}
-        hasSelection={!!selection} fullscreen={fullscreen}
-        onToggleFullscreen={() => setFullscreen(!fullscreen)} />
+      {capture ? (
+        capture.footer && <footer className="capture-footer"
+          data-testid="capture-footer">{capture.footer}</footer>
+      ) : (
+        <Controls pb={pb} total={replay.events.length}
+          onToggleTheme={onToggleTheme}
+          onJumpBlocking={actions.blocking} onJumpSelection={actions.selection}
+          hasSelection={!!selection} fullscreen={fullscreen}
+          onToggleFullscreen={() => setFullscreen(!fullscreen)} />
+      )}
     </div>
   );
 }

@@ -268,6 +268,14 @@ class Recorder:
             )
         return event_id
 
+    def current_actor(self) -> str:
+        """Logical id of the calling thread (registered on first use)."""
+        return (
+            getattr(self._tls, "task_id", None)
+            or getattr(self._tls, "thread_id", None)
+            or self._register_current_thread()
+        )
+
     def remote_actor(self, key: str, name: str, ident: int) -> str:
         """Logical actor for a worker in another process (registered once).
 

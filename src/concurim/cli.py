@@ -20,6 +20,11 @@ SHARING_WARNING = (
     "Note: traces can contain file paths, thread names and (if enabled) "
     "source code or payload previews. Review a trace before sharing it."
 )
+VIDEO_WARNING = (
+    "Note: videos show everything in the picture: file paths, thread "
+    "names and (in the code view) source. Review a clip before sharing it."
+)
+SIZES = {"720p": (1280, 720), "1080p": (1920, 1080), "square": (1080, 1080)}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -75,18 +80,111 @@ def build_parser() -> argparse.ArgumentParser:
 
     for name, func, help_ in (
         ("view", _cmd_view, "open a recorded trace"),
+        ("compare", _cmd_compare, "show two recordings side by side"),
         ("demo", _cmd_demo, "record and view a demo"),
     ):
         cmd = sub.add_parser(name, help=help_)
         if name == "view":
             cmd.add_argument("trace", type=Path)
+        if name == "compare":
+            cmd.add_argument("first", type=Path)
+            cmd.add_argument("second", type=Path)
         _add_server_options(cmd)
         cmd.set_defaults(func=func)
 
+    _add_export_parser(sub)
     insp = sub.add_parser("inspect", help="print trace metadata")
     insp.add_argument("trace", type=Path)
     insp.set_defaults(func=_cmd_inspect)
     return parser
+
+
+def _add_export_parser(sub: argparse._SubParsersAction) -> None:
+    """Register ``export`` (arguments: see ``--help``)."""
+    from concurim.export.video import OVERLAYS, VIEWS
+
+    cmd = sub.add_parser(
+        "export",
+        help="render a recording as .mp4/.webm/.gif or a PNG directory",
+    )
+    cmd.add_argument("trace", type=Path)
+    cmd.add_argument("-o", "--output", type=Path, required=True)
+    cmd.add_argument("--view", choices=VIEWS, default="animation")
+    cmd.add_argument("--events", metavar="A:B", help="1-based, inclusive")
+    cmd.add_argument("--size", default="720p", help="720p, 1080p, square, WxH")
+    cmd.add_argument("--fps", type=int, default=30)
+    cmd.add_argument(
+        "--hold",
+        type=float,
+        default=1.2,
+        help="seconds each event stays on screen",
+    )
+    cmd.add_argument(
+        "--hide",
+        action="append",
+        default=[],
+        choices=OVERLAYS,
+        help="leave out an overlay (repeatable)",
+    )
+    cmd.add_argument("--no-footer", action="store_true")
+    cmd.add_argument("--theme", choices=("dark", "light"), default="dark")
+    cmd.set_defaults(func=_cmd_export)
+
+
+def _parse_size(text: str) -> tuple[int, int]:
+    """(width, height) from a preset name or ``WxH``; ValueError if bad."""
+    if text in SIZES:
+        return SIZES[text]
+    width, _, height = text.partition("x")
+    if not (width.isdigit() and height.isdigit()):
+        raise ValueError(f"bad --size {text!r}: use 720p, 1080p or WxH")
+    return int(width), int(height)
+
+
+def _parse_events(text: str | None) -> tuple[int, int | None]:
+    """1-based (first, last) from ``A:B``; last None means the end."""
+    if not text:
+        return 1, None
+    first, _, last = text.partition(":")
+    if not first.isdigit() or (last and not last.isdigit()):
+        raise ValueError(f"bad --events {text!r}: use A:B, e.g. 5:40")
+    return int(first), int(last) if last else None
+
+
+def _cmd_export(args: argparse.Namespace) -> int:
+    """Render a trace to a clip; returns 2 on a user-fixable problem."""
+    from concurim.export.cdp import ExportError
+    from concurim.export.video import OVERLAYS, ExportOptions, export_video
+
+    try:
+        width, height = _parse_size(args.size)
+        start, end = _parse_events(args.events)
+        options = ExportOptions(
+            view=args.view,
+            start=start,
+            end=end,
+            width=width,
+            height=height,
+            fps=args.fps,
+            hold=args.hold,
+            footer=not args.no_footer,
+            overlays=tuple(o for o in OVERLAYS if o not in args.hide),
+            theme=args.theme,
+        )
+        frames = export_video(
+            args.trace,
+            args.output,
+            options,
+            lambda msg: print(f"\r{msg}", end="", file=sys.stderr),
+        )
+    except (ExportError, ValueError) as error:
+        print(f"\nconcurim: error: {error}", file=sys.stderr)
+        return 2
+    print(
+        f"\nconcurim: wrote {frames} frames to {args.output}", file=sys.stderr
+    )
+    print(VIDEO_WARNING, file=sys.stderr)
+    return 0
 
 
 def _add_server_options(parser: argparse.ArgumentParser) -> None:
@@ -133,16 +231,21 @@ def _cmd_record(args: argparse.Namespace) -> int:
 
 
 def _serve(
-    trace: Trace | None, port: int, open_browser: bool, label: str = "trace"
+    trace: Trace | None,
+    port: int,
+    open_browser: bool,
+    label: str = "trace",
+    compare: tuple[tuple[Trace, str], ...] = (),
 ) -> int:
     from concurim.viewer.server import ViewerServer
 
     if not (Path(__file__).parent / "viewer/static/index.html").is_file():
         raise FileNotFoundError("viewer assets missing (run scripts/build.sh)")
-    server = ViewerServer(trace, port, label=label)
-    print(f"concurim: viewer at {server.url} (Ctrl-C to stop)")
+    server = ViewerServer(trace, port, label=label, compare=compare)
+    url = server.url + ("?compare=1" if compare else "")
+    print(f"concurim: viewer at {url} (Ctrl-C to stop)")
     if open_browser:
-        webbrowser.open(server.url)
+        webbrowser.open(url)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -160,6 +263,11 @@ def _cmd_view(args: argparse.Namespace) -> int:
     return _serve(
         load_trace(args.trace), args.port, not args.no_browser, args.trace.name
     )
+
+
+def _cmd_compare(args: argparse.Namespace) -> int:
+    pair = tuple((load_trace(p), p.name) for p in (args.first, args.second))
+    return _serve(None, args.port, not args.no_browser, compare=pair)
 
 
 def _cmd_demo(args: argparse.Namespace) -> int:

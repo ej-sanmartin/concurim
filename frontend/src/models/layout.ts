@@ -12,8 +12,10 @@ export interface Layout {
   queues: Record<string, Point & { slots: number; w: number }>;
   syncs: Record<string, Point>;
   edges: { thread: string; queue: string; dir: "put" | "get" }[];
-  /** Which threads/tasks use which lock or semaphore. */
+  /** Which threads/tasks use which lock, semaphore, event or condition. */
   syncEdges: { thread: string; sync: string }[];
+  /** A condition and the lock it was created with. */
+  syncLinks: { condition: string; lock: string }[];
   /** Worker groups big enough to collapse into one node. */
   groups: Group[];
   threadOrder: string[];
@@ -51,6 +53,27 @@ const add = (m: Touches, key: string, value: string) => {
   m.get(key)!.add(value);
 };
 
+/** Operations on a sync resource that tie an actor to it. */
+const touchesSync = (type: string) =>
+  type.includes(".acquire.") || type.includes(".wait.") ||
+  type === "event.set" || type === "event.cleared" ||
+  type === "condition.notify" || type.startsWith("taskgroup.");
+
+/** Conditions sit directly left of their lock, so the link is short. */
+function orderSyncs(replay: Replay): string[] {
+  const syncs = replay.entities.syncs ?? {};
+  const ids = Object.keys(syncs);
+  const lockOf = (id: string) => syncs[id].kind === "condition" ? syncs[id].lock : null;
+  const attached = new Set(ids.filter((id) => lockOf(id) && lockOf(id)! in syncs));
+  const out: string[] = [];
+  for (const id of ids) {
+    if (attached.has(id)) continue;
+    for (const c of ids) if (lockOf(c) === id && attached.has(c)) out.push(c);
+    out.push(id);
+  }
+  return out;
+}
+
 /** Which resource-bound operations each actor performed, from the events. */
 function observeUse(replay: Replay) {
   const queues = new Set(Object.keys(replay.entities.queues));
@@ -64,7 +87,9 @@ function observeUse(replay: Replay) {
     if (!actor || !rid) continue;
     const type = ev.event_type;
     if (syncs.has(rid)) {
-      if (type.includes(".acquire.")) add(locks, actor, rid);
+      if (touchesSync(type)) add(locks, actor, rid);
+      const child = ev.metadata?.child;
+      if (type === "taskgroup.task.added" && child) add(locks, String(child), rid);
     } else if (queues.has(rid)) {
       if (type.startsWith("queue.get.") || type === "executor.task.started") add(gets, actor, rid);
       else if (type.startsWith("queue.put.") || type === "executor.submit") add(puts, actor, rid);
@@ -85,7 +110,7 @@ function observeUse(replay: Replay) {
  */
 export function computeLayout(replay: Replay): Layout {
   const queueIds = Object.keys(replay.entities.queues);
-  const syncIds = Object.keys(replay.entities.syncs ?? {});
+  const syncIds = orderSyncs(replay);
   const qIndex = new Map(queueIds.map((q, i) => [q, i]));
   const { gets, puts, locks } = observeUse(replay);
 
@@ -165,6 +190,12 @@ export function computeLayout(replay: Replay): Layout {
   const syncEdges: Layout["syncEdges"] = [];
   for (const [t, set] of locks) for (const s of set) syncEdges.push({ thread: t, sync: s });
 
+  const syncLinks: Layout["syncLinks"] = syncIds.flatMap((id) => {
+    const info = replay.entities.syncs[id];
+    const lock = info.kind === "condition" ? info.lock : null;
+    return lock && lock in replay.entities.syncs ? [{ condition: id, lock }] : [];
+  });
+
   const bundles = [...groups.map((g, gi) => ({ key: `stage-${gi}`, members: g })),
     { key: "others", members: others }];
   const grouped: Group[] = bundles
@@ -176,7 +207,10 @@ export function computeLayout(replay: Replay): Layout {
     });
 
   const threadOrder = [...groups.flat(), ...others];
-  return { width: totalW, height, threads, queues, syncs, edges, syncEdges, groups: grouped, threadOrder };
+  return {
+    width: totalW, height, threads, queues, syncs, edges, syncEdges, syncLinks,
+    groups: grouped, threadOrder,
+  };
 }
 
 /** X/Y of the item slot ``index`` (0 = front, drawn at the right end). */

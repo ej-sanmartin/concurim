@@ -1,0 +1,24 @@
+/* ---- capture mode (video export): see capture.ts ---- */
+.app[data-capture] { grid-template-rows: minmax(0, 1fr) auto auto; }
+.app[data-capture] > .top { display: none; }
+.app[data-capture] *, .app[data-capture] *::before, .app[data-capture] *::after {
+  transition: none !important; animation: none !important;
+  caret-color: transparent;
+}
+.app[data-capture][data-hide-timeline] > .timeline:not(.full) { display: none; }
+.app[data-capture][data-hide-explanation] .explanation { display: none; }
+.app[data-capture]:not([data-mode="code"]) .tabs,
+.app[data-capture]:not([data-mode="code"]) .tabpanel { display: none; }
+.app[data-capture][data-hide-explanation]:not([data-mode="code"]) .side {
+  display: none;
+}
+.app[data-capture][data-hide-explanation]:not([data-mode="code"]) .stage {
+  grid-template-columns: minmax(0, 1fr);
+}
+.app[data-capture] .flow-toolbar, .app[data-capture] .react-flow__controls,
+.app[data-capture] .react-flow__attribution { display: none; }
+.capture-footer {
+  padding: 6px 16px; font-size: 12px; color: var(--muted);
+  border-top: 1px solid var(--border); background: var(--panel);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}

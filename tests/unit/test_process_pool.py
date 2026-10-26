@@ -107,7 +107,7 @@ def test_workers_are_marked_finished_when_the_pool_shuts_down(rec):
 def test_outside_a_recording_it_is_a_plain_process_pool():
     with concurim.TracedProcessPoolExecutor(1, mp_context=SPAWN) as pool:
         assert pool.submit(pool_tasks.square, 5).result() == 25
-        assert pool._cz_queue is None
+        assert pool._cz_sink is None
 
 
 def test_auto_level_traces_pools_made_by_user_code_without_noise():

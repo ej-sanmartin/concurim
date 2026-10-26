@@ -1,3 +1,4 @@
+import type { Replay } from "../models/replay";
 import type {
   RunPlan, RunRequest, RunStatus, SessionInfo, WorkspaceInfo,
 } from "./types";
@@ -38,6 +39,11 @@ export const openSample = (id: string) =>
   call<unknown>("POST", `api/samples/${encodeURIComponent(id)}/open`);
 export const uploadTrace = (file: Blob, name: string) =>
   call<unknown>("POST", `api/trace?name=${encodeURIComponent(name)}`, file);
+export type Slot = "a" | "b";
+export const uploadCompare = (slot: Slot, file: Blob, name: string) =>
+  call<unknown>("POST", `api/compare/${slot}/trace?name=${encodeURIComponent(name)}`, file);
+export const compareReplay = (slot: Slot) =>
+  call<Replay>("GET", `api/compare/${slot}/replay`);
 export const uploadWorkspace = (files: { path: string; data: string }[]) =>
   call<WorkspaceInfo>("POST", "api/workspaces", { files });
 export const planRun = (req: RunRequest) =>

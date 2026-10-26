@@ -11,7 +11,13 @@ from typing import Any
 
 from concurim.recorder.events import Event
 from concurim.recorder.events import EventType as E
-from concurim.replay import rules_exec, rules_queues, rules_sync, rules_threads
+from concurim.replay import (
+    rules_events,
+    rules_exec,
+    rules_queues,
+    rules_sync,
+    rules_threads,
+)
 from concurim.replay.state import Applied, Reducer
 
 
@@ -87,12 +93,33 @@ _RULES = {
     E.EXECUTOR_TASK_FINISHED: rules_exec._finished,
     E.EXECUTOR_TASK_FAILED: rules_exec._failed,
     E.EXECUTOR_SHUTDOWN: rules_exec._shutdown,
+    E.EXECUTOR_TASK_CANCELLED: rules_exec._task_cancelled_future,
+    E.EXECUTOR_CALLBACK: rules_exec._callback,
+    E.EXECUTOR_COLLECTED: rules_exec._collected,
     E.TASK_CREATED: rules_exec._task_created,
     E.TASK_STEP_STARTED: rules_exec._step_started,
     E.TASK_STEP_ENDED: rules_exec._step_ended,
     E.TASK_FINISHED: rules_exec._task_finished,
     E.TASK_FAILED: rules_exec._task_failed,
     E.TASK_CANCELLED: rules_exec._task_cancelled,
+    E.EVENT_CREATED: rules_events._event_created,
+    E.EVENT_SET: rules_events._event_set,
+    E.EVENT_CLEARED: rules_events._event_cleared,
+    E.EVENT_WAIT_STARTED: rules_events._event_wait_started,
+    E.EVENT_WAIT_BLOCKED: rules_events._event_wait_blocked,
+    E.EVENT_WAIT_COMPLETED: rules_events._event_wait_completed,
+    E.EVENT_WAIT_TIMEOUT: rules_events._event_wait_timeout,
+    E.EVENT_WAIT_FAILED: rules_events._wait_failed,
+    E.CONDITION_CREATED: rules_events._condition_created,
+    E.CONDITION_NOTIFY: rules_events._notify,
+    E.CONDITION_WAIT_STARTED: rules_events._cond_wait_started,
+    E.CONDITION_WAIT_COMPLETED: rules_events._cond_wait_completed,
+    E.CONDITION_WAIT_TIMEOUT: rules_events._cond_wait_timeout,
+    E.CONDITION_WAIT_FAILED: rules_events._wait_failed,
+    E.TASKGROUP_CREATED: rules_events._group_created,
+    E.TASKGROUP_TASK_ADDED: rules_events._group_task_added,
+    E.TASKGROUP_EXIT_STARTED: rules_events._group_exit_started,
+    E.TASKGROUP_EXIT_COMPLETED: rules_events._group_exit_completed,
 }
 for _kind in ("LOCK", "SEMAPHORE"):
     for _name, _rule in (

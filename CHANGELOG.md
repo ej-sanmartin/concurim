@@ -5,6 +5,12 @@
 First vertical slice, then the GUI-first milestone, then locks, pools and
 asyncio.
 
+- Events and conditions (`threading` and `asyncio`), `asyncio.TaskGroup`,
+  `multiprocessing` `Pool` and `Process` (copied versus shared arguments),
+  and `Future.cancel()`, callbacks and `as_completed` for thread pools.
+- Viewer: **Lineage** tab, **Resources** layout, `concurim compare` (side by
+  side, GIL on/off, facts only), and `concurim export` (mp4/webm/gif/PNG,
+  deterministic frames, optional `concurim[video]` for ffmpeg).
 - Observability levels `sync` (`threading.Lock/RLock/Semaphore/
   BoundedSemaphore`, `ThreadPoolExecutor`) and `asyncio` (tasks, `Queue`,
   `Lock`, `Semaphore`); managed `TracedLock`, `TracedRLock`,

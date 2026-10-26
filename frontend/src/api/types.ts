@@ -24,6 +24,8 @@ export interface SessionInfo {
   has_trace: boolean;
   label: string | null;
   generation: number;
+  /** Labels of the two recordings loaded for comparison (null: empty). */
+  compare: { a: string | null; b: string | null };
   samples: SampleInfo[];
   planned: { title: string; needs: string }[];
   interpreters: Interpreter[];

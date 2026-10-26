@@ -23,7 +23,7 @@ const SAMPLES = [
 test("home lists the bundled examples and says which are planned", async ({ page }) => {
   await goHome(page);
   for (const id of SAMPLES) await expect(page.getByTestId(`sample-${id}`)).toBeVisible();
-  await expect(page.getByText("Planned, not yet supported")).toContainText("Events and conditions");
+  await expect(page.getByText("Planned, not yet supported")).toContainText("Barriers");
   await expect(page.getByTestId("dropzone")).toContainText("watch its concurrency unfold");
 });
 

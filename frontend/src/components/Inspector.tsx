@@ -44,7 +44,16 @@ export function Inspector({ replay, world, index, selection, onSeek }: Props) {
       ["kind", info.kind],
       ...(info.kind === "semaphore"
         ? [["permits free", `${s.value} of ${s.capacity}`] as [string, string]] : []),
-      ["held by", s.holders.map(name).join(", ") || "–"],
+      ...(info.kind === "event"
+        ? [["flag", s.is_set ? "set" : "not set"] as [string, string]] : []),
+      ...(info.kind === "condition"
+        ? [["lock", s.lock ? name(s.lock) : "not recorded"] as [string, string],
+          ["notified, not yet resumed", String(s.notified)] as [string, string]] : []),
+      ...(info.kind === "taskgroup"
+        ? [["tasks", `${s.running} running of ${s.members.length}`] as [string, string],
+          ["members", s.members.map(name).join(", ") || "–"] as [string, string]] : []),
+      ...(["lock", "rlock", "semaphore"].includes(info.kind)
+        ? [["held by", s.holders.map(name).join(", ") || "–"] as [string, string]] : []),
       ["waiting", s.waiters.map((b) => name(b.thread)).join(", ") || "–"],
     ] : [["state", "not created yet at this point"]];
   } else if (selection.kind === "queue") {

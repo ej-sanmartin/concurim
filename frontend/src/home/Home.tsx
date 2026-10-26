@@ -8,6 +8,7 @@ import { RunPanel } from "./RunPanel";
 interface Props {
   session: SessionInfo;
   onOpenTrace: () => void;
+  onCompare: () => void;
   /** Present when a recording is already loaded. */
   onBack: (() => void) | null;
   onToggleTheme: () => void;
@@ -18,7 +19,7 @@ type Pending = { workspace: WorkspaceInfo | null; title: string } | null;
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
 /** Drop zone, run panel and example gallery. */
-export function Home({ session, onOpenTrace, onBack, onToggleTheme }: Props) {
+export function Home({ session, onOpenTrace, onCompare, onBack, onToggleTheme }: Props) {
   const [pending, setPending] = useState<Pending>(null);
   const [over, setOver] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -75,6 +76,9 @@ export function Home({ session, onOpenTrace, onBack, onToggleTheme }: Props) {
               ← Back to “{session.label}”
             </button>
           )}
+          <button className="link" onClick={onCompare} data-testid="open-compare">
+            Compare two recordings
+          </button>
           <button className="link" onClick={onToggleTheme} aria-label="Toggle theme">◐</button>
         </div>
       </header>

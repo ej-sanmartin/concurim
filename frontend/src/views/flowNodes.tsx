@@ -22,6 +22,7 @@ function Handles() {
 
 const WAIT_VERB: Record<string, string> = {
   put: "put on", get: "get from", join: "join", acquire: "acquire",
+  wait: "be woken by",
 };
 
 function waitText(s: ThreadState, replay: Replay): string {

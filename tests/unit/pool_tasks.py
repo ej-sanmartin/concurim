@@ -32,3 +32,20 @@ def slow(seconds):
     end = time.monotonic() + seconds
     while time.monotonic() < end:
         pass
+
+
+def add(a, b):
+    return a + b
+
+
+def append_one(items):
+    """Mutates its (copied) argument and reports the new length."""
+    items.append(1)
+    return len(items)
+
+
+def bump(counter, items):
+    """A process target: change a shared value and a copied list."""
+    with counter.get_lock():
+        counter.value += 1
+    items.append(1)

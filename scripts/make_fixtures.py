@@ -25,6 +25,15 @@ SAMPLES = (
     "thread-pool",
     "asyncio-tasks",
     "process-pool",
+    "event-gate",
+    "condition-mailbox",
+    "asyncio-condition",
+    "future-control",
+    "task-group",
+    "lineage-pipeline",
+    "lock-order",
+    "process-pool-map",
+    "process-share",
 )
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "frontend" / "tests" / "fixtures"

@@ -92,6 +92,8 @@
 .fnode.sync > * { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fnode.sync[data-busy] { border-color: var(--c-waiting); }
 .fnode.sync[data-active] { border-color: var(--accent); }
+.fnode.sync[data-kind="event"][data-set] { border-color: var(--c-working); }
+.fnode.sync[data-kind="condition"], .fnode.sync[data-kind="taskgroup"] { border-style: dashed; }
 .fnode.sync .permits { display: flex; gap: 4px; }
 .fnode.sync .permits i { width: 10px; height: 10px; border-radius: 3px; background: var(--c-working); }
 .fnode.sync .permits i[data-taken] { background: var(--slot); border: 1px solid var(--border); }

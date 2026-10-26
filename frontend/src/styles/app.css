@@ -92,6 +92,10 @@ code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
   text-align: left; font: inherit; white-space: normal;
 }
 .link:hover { text-decoration: underline; }
+.lineage ul { list-style: none; margin: 0; padding: 0; }
+.lineage li { padding: 3px 0; border-left: 2px solid transparent; }
+.lineage li[data-focus] { font-weight: 600; border-left-color: var(--accent); }
+.lineage li[data-unrelated] { opacity: 0.55; }
 ul.history, ol.journey { list-style: none; margin: 0; padding: 0; }
 [data-future] { opacity: 0.45; }
 [data-current] { font-weight: 600; }
@@ -127,7 +131,8 @@ ul.history, ol.journey { list-style: none; margin: 0; padding: 0; }
 .life { stroke: var(--border); stroke-width: 2; }
 .span { opacity: 0.9; }
 .span-wait_put, .span-wait_get, .span-wait_join { fill: var(--c-waiting); opacity: 0.55; }
-.span-wait_lock { fill: var(--c-waiting); opacity: 0.55; }
+.span-wait_lock, .span-wait_event, .span-wait_condition,
+.span-wait_taskgroup { fill: var(--c-waiting); opacity: 0.55; }
 .span-hold { fill: var(--c-suspended); opacity: 0.6; }
 .span-work { fill: var(--c-working); opacity: 0.7; }
 .span.out-timeout, .span.out-failed { fill: var(--c-failed); }
@@ -205,3 +210,37 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
   background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 4px 12px;
 }
 .controls .fs-toggle[aria-pressed="true"] { background: var(--accent); color: var(--token-ink); border-color: var(--accent); }
+
+/* ---- resources view ---- */
+.resource-view { height: 100%; overflow: auto; padding: 8px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+.resource-view svg { display: block; max-width: 760px; margin: 0 auto; }
+.rnode rect { fill: var(--panel-2); stroke: var(--border); cursor: pointer; }
+.rnode[data-selected] rect { stroke: var(--accent); stroke-width: 2; }
+.rnode.resource rect { stroke-dasharray: none; }
+.rnode text { fill: var(--text); font-size: 12px; pointer-events: none; }
+.rnode .title { font-weight: 600; }
+.rnode .sub { fill: var(--muted); font-size: 11px; }
+.redge path { fill: none; stroke-width: 2; }
+.redge.holds path { stroke: var(--c-running); }
+.redge.waits path { stroke: var(--c-waiting); stroke-dasharray: 6 4; }
+.redge.member path { stroke: var(--muted); stroke-dasharray: 2 4; stroke-width: 1; opacity: 0.7; }
+.redge.cycle path { stroke: var(--c-failed); stroke-width: 3; }
+.redge text { fill: var(--muted); font-size: 10px; }
+.redge.cycle text { fill: var(--c-failed); }
+.arrow-holds { fill: var(--c-running); }
+.arrow-waits { fill: var(--c-waiting); }
+.arrow-cycle { fill: var(--c-failed); }
+.cycle-note { margin: 4px 0 8px; padding: 8px 12px; border: 1px solid var(--c-failed); border-radius: 8px; color: var(--text); font-size: 13px; }
+.rlegend { text-align: center; font-size: 12px; }
+
+/* ---- compare ---- */
+.compare main { max-width: 900px; margin: 0 auto; padding: 16px; }
+.compare .slots { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+.compare .slot { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+.compare table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 12px 0; }
+.compare th, .compare td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--border); }
+.compare thead th { color: var(--accent); }
+.lanes figure { margin: 12px 0; }
+.lanes figcaption { font-size: 12px; color: var(--muted); }
+.lane-span { fill: var(--c-working); opacity: 0.8; }
+.lane-end { stroke: var(--muted); stroke-dasharray: 3 3; }

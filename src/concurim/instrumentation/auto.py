@@ -10,14 +10,16 @@ Levels, from least to most invasive; each includes the ones before it:
     *during* the recording are observed. Queues created earlier,
     ``LifoQueue``, ``PriorityQueue`` and ``SimpleQueue`` are not.
 ``"sync"``
-    Replaces ``threading.Lock/RLock/Semaphore/BoundedSemaphore`` and
-    ``ThreadPoolExecutor`` and ``ProcessPoolExecutor`` (task start and end
-    in each worker process). Only objects created directly by *your* code
-    are traced: ones created inside the standard library or installed packages
-    (for example an ``Event``'s internal lock) are plain.
+    Replaces ``threading.Lock/RLock/Semaphore/BoundedSemaphore/Event/
+    Condition``, ``ThreadPoolExecutor``, ``ProcessPoolExecutor``,
+    ``multiprocessing.Process`` and ``multiprocessing.Pool`` (task start and
+    end in each worker process). Only objects created directly by
+    *your* code are traced: ones created inside the standard library or
+    installed packages (for example an ``Event``'s internal lock) are plain.
 ``"asyncio"``
     Records asyncio task creation and every task step of the event loop, and
-    replaces ``asyncio.Queue/Lock/Semaphore/BoundedSemaphore``.
+    replaces ``asyncio.Queue/Lock/Semaphore/BoundedSemaphore/Event/
+    Condition/TaskGroup``.
 
 All patches are restored on exit, even if the program fails. Code that
 inspects ``Queue.queue`` sees the original items; ``isinstance(x,
@@ -33,20 +35,33 @@ import asyncio.events
 import concurrent.futures
 import concurrent.futures.thread
 import contextlib
-import os
+import multiprocessing
 import queue
-import sys
 import threading
 from collections.abc import Callable, Generator
 from typing import Any
 
 from concurim.config import LEVELS
 from concurim.instrumentation import aio_primitives as aio
+from concurim.instrumentation.aio_taskgroup import AutoTaskGroup
 from concurim.instrumentation.aio_tasks import (
     patched_create_task,
     patched_run,
 )
+from concurim.instrumentation.auto_events import (
+    AutoAsyncCondition,
+    AutoAsyncEvent,
+    AutoCondition,
+    AutoEvent,
+)
+from concurim.instrumentation.auto_mp import AutoPool, AutoProcess
+from concurim.instrumentation.auto_support import (
+    creation_name,
+    in_stdlib,
+    user_caller,
+)
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
+from concurim.instrumentation.futures_support import traced_as_completed
 from concurim.instrumentation.process_pool import TracedProcessPoolExecutor
 from concurim.instrumentation.queues import TracedQueue
 from concurim.instrumentation.sync import (
@@ -56,45 +71,14 @@ from concurim.instrumentation.sync import (
     TracedSemaphore,
 )
 from concurim.instrumentation.threads import observe_thread
-from concurim.recorder.collector import INTERNAL_FILES, mark_internal
-from concurim.recorder.lifecycle import active_recorder
+from concurim.recorder.collector import mark_internal
 
 mark_internal(__file__)
 
 __all__ = ["LEVELS", "auto_instrument"]
 
-_STDLIB = os.path.dirname(os.__file__) + os.sep
 _REAL_LOCK = _thread.allocate_lock
 _REAL_QUEUE = queue.Queue
-
-
-def _user_caller(depth: int) -> bool:
-    """Whether the caller ``depth`` frames above the caller is user code."""
-    try:
-        name = sys._getframe(depth + 1).f_code.co_filename
-    except ValueError:
-        return False
-    return not (
-        name.startswith(("<frozen", _STDLIB))
-        or "-packages" in name
-        or name in INTERNAL_FILES
-    )
-
-
-def _name(label: str) -> str | None:
-    """``"Queue (line 12)"``, from the line that created the object."""
-    rec = active_recorder()
-    source = rec.capture_source() if rec else None
-    return f"{label} (line {source.line})" if source else None
-
-
-def _in_stdlib(depth: int) -> bool:
-    """Whether the caller ``depth`` frames above the caller is stdlib code."""
-    try:
-        name = sys._getframe(depth + 1).f_code.co_filename
-    except ValueError:
-        return False
-    return name.startswith(("<frozen", _STDLIB)) and "-packages" not in name
 
 
 class AutoQueue(TracedQueue):
@@ -105,36 +89,36 @@ class AutoQueue(TracedQueue):
     """
 
     def __new__(cls, maxsize: int = 0):
-        if cls is AutoQueue and _in_stdlib(1):
+        if cls is AutoQueue and in_stdlib(1):
             return _REAL_QUEUE(maxsize)
         return super().__new__(cls)
 
     def __init__(self, maxsize: int = 0) -> None:
-        super().__init__(maxsize, name=_name("Queue"))
+        super().__init__(maxsize, name=creation_name("Queue"))
 
 
 def _auto_lock() -> Any:
-    if not _user_caller(1):
+    if not user_caller(1):
         return _REAL_LOCK()
-    return TracedLock(name=_name("Lock"))
+    return TracedLock(name=creation_name("Lock"))
 
 
 _REAL_RLOCK = threading.RLock
 
 
 def _auto_rlock() -> Any:
-    if not _user_caller(1):
+    if not user_caller(1):
         return _REAL_RLOCK()
-    return TracedRLock(name=_name("RLock"))
+    return TracedRLock(name=creation_name("RLock"))
 
 
 class AutoSemaphore(TracedSemaphore):
     """Traced only when created by user code."""
 
     def __init__(self, value: int = 1) -> None:
-        self._cz_on = _user_caller(1)
+        self._cz_on = user_caller(1)
         super().__init__(
-            value, name=_name("Semaphore") if self._cz_on else None
+            value, name=creation_name("Semaphore") if self._cz_on else None
         )
 
 
@@ -146,8 +130,8 @@ class AutoExecutor(TracedThreadPoolExecutor):
     """Traced only when created by user code (not by asyncio, say)."""
 
     def __init__(self, max_workers: int | None = None, *a: Any, **kw: Any):
-        self._cz_on = _user_caller(1)
-        kw["name"] = _name("ThreadPoolExecutor")
+        self._cz_on = user_caller(1)
+        kw["name"] = creation_name("ThreadPoolExecutor")
         super().__init__(max_workers, *a, **kw)
 
 
@@ -155,8 +139,8 @@ class AutoProcessPool(TracedProcessPoolExecutor):
     """Traced only when created by user code."""
 
     def __init__(self, *a: Any, **kw: Any):
-        self._cz_on = _user_caller(1)
-        kw["name"] = _name("ProcessPoolExecutor")
+        self._cz_on = user_caller(1)
+        kw["name"] = creation_name("ProcessPoolExecutor")
         super().__init__(*a, **kw)
 
 
@@ -164,21 +148,21 @@ class AutoAsyncQueue(aio.TracedAsyncQueue):
     """``TracedAsyncQueue`` named after the line that created it."""
 
     def __init__(self, maxsize: int = 0) -> None:
-        super().__init__(maxsize, name=_name("Queue"))
+        super().__init__(maxsize, name=creation_name("Queue"))
 
 
 class AutoAsyncLock(aio.TracedAsyncLock):
     """``TracedAsyncLock`` named after the line that created it."""
 
     def __init__(self) -> None:
-        super().__init__(name=_name("Lock"))
+        super().__init__(name=creation_name("Lock"))
 
 
 class AutoAsyncSemaphore(aio.TracedAsyncSemaphore):
     """``TracedAsyncSemaphore`` named after the line that created it."""
 
     def __init__(self, value: int = 1) -> None:
-        super().__init__(value, name=_name("Semaphore"))
+        super().__init__(value, name=creation_name("Semaphore"))
 
 
 class AutoAsyncBoundedSemaphore(
@@ -211,9 +195,14 @@ def _patches(level: str) -> list[tuple[Any, str, Any]]:
             (threading, "RLock", _auto_rlock),
             (threading, "Semaphore", AutoSemaphore),
             (threading, "BoundedSemaphore", AutoBoundedSemaphore),
+            (threading, "Event", AutoEvent),
+            (threading, "Condition", AutoCondition),
             (concurrent.futures, "ThreadPoolExecutor", AutoExecutor),
             (concurrent.futures.thread, "ThreadPoolExecutor", AutoExecutor),
             (concurrent.futures, "ProcessPoolExecutor", AutoProcessPool),
+            (concurrent.futures, "as_completed", traced_as_completed),
+            (multiprocessing, "Process", AutoProcess),
+            (multiprocessing, "Pool", AutoPool),
             (
                 concurrent.futures.process,
                 "ProcessPoolExecutor",
@@ -229,6 +218,9 @@ def _patches(level: str) -> list[tuple[Any, str, Any]]:
             (asyncio, "Lock", AutoAsyncLock),
             (asyncio, "Semaphore", AutoAsyncSemaphore),
             (asyncio, "BoundedSemaphore", AutoAsyncBoundedSemaphore),
+            (asyncio, "TaskGroup", AutoTaskGroup),
+            (asyncio, "Event", AutoAsyncEvent),
+            (asyncio, "Condition", AutoAsyncCondition),
         ]
     return out
 

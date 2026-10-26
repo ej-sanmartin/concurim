@@ -18,6 +18,10 @@ classifiers = [
 ]
 dependencies = []
 
+[project.optional-dependencies]
+# A bundled ffmpeg for `concurim export`; a system ffmpeg works too.
+video = ["imageio-ffmpeg>=0.5"]
+
 [project.scripts]
 concurim = "concurim.cli:main"
 

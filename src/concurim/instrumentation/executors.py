@@ -13,6 +13,7 @@ import contextlib
 from collections.abc import Callable
 from typing import Any
 
+from concurim.instrumentation.futures_support import watch_future
 from concurim.recorder.collector import Recorder, mark_internal
 from concurim.recorder.events import EventType as E
 from concurim.recorder.lifecycle import active_recorder
@@ -109,7 +110,19 @@ class TracedThreadPoolExecutor(_BasePool):
             source=rec.capture_source(),
             metadata={"name": name},
         )
-        return super().submit(_call, rec, rid, oid, op, name, fn, args, kwargs)
+        future = super().submit(
+            _call, rec, rid, oid, op, name, fn, args, kwargs
+        )
+        watch_future(
+            rec,
+            future,
+            rid=rid,
+            oid=oid,
+            op=op,
+            name=name,
+            suppress=lambda: getattr(self, "_cz_dropping", False),
+        )
+        return future
 
     def shutdown(
         self, wait: bool = True, *, cancel_futures: bool = False
@@ -118,6 +131,8 @@ class TracedThreadPoolExecutor(_BasePool):
         rec = active_recorder() if self._cz_on else None
         if rec is not None and not getattr(self, "_cz_closed", False):
             self._cz_closed = True
+            # The shutdown event already says every pending task is dropped.
+            self._cz_dropping = cancel_futures
             # Recording must never keep the pool from shutting down.
             with contextlib.suppress(Exception):
                 rec.emit(

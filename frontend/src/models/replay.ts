@@ -82,17 +82,30 @@ export interface QueueState {
   joiners: string[];
 }
 
-/** A lock or semaphore. */
+export type SyncKind =
+  | "lock" | "rlock" | "semaphore" | "event" | "condition" | "taskgroup";
+
+/** A lock, semaphore, event, condition or task group. */
 export interface SyncState {
   id: string;
   name: string;
-  kind: "lock" | "rlock" | "semaphore";
+  kind: SyncKind;
   capacity: number;
   /** Permits available (semaphores). */
   value: number;
   /** One entry per hold, as actor ids. */
   holders: string[];
   waiters: BlockedOp[];
+  /** Event: the flag. */
+  is_set: boolean;
+  /** Condition: id of its associated lock, when that lock is recorded. */
+  lock: string | null;
+  /** Condition: signals not yet matched by a resumed waiter. */
+  notified: number;
+  /** Task group: the tasks created in it. */
+  members: string[];
+  /** Task group: member tasks not finished. */
+  running: number;
 }
 
 export type ObjectPhase =
@@ -130,7 +143,9 @@ export interface Frame {
 }
 
 export interface Span {
-  kind: "wait_put" | "wait_get" | "wait_join" | "wait_lock" | "hold" | "work";
+  kind:
+    | "wait_put" | "wait_get" | "wait_join" | "wait_lock" | "wait_event"
+    | "wait_condition" | "wait_taskgroup" | "hold" | "work";
   thread: string | null;
   resource: string | null;
   object: string | null;
@@ -161,7 +176,7 @@ export interface Replay {
     >;
     syncs: Record<
       string,
-      { id: string; name: string; kind: "lock" | "rlock" | "semaphore"; capacity: number }
+      { id: string; name: string; kind: SyncKind; capacity: number; lock: string | null }
     >;
     objects: Record<
       string,

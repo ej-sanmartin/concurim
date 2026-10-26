@@ -50,15 +50,21 @@ class QueueState:
 
 @dataclass
 class SyncState:
-    """A lock or semaphore."""
+    """A lock, semaphore, event, condition or task group."""
 
     id: str
     name: str
-    kind: str = "lock"  # lock | rlock | semaphore
+    # lock | rlock | semaphore | event | condition | taskgroup
+    kind: str = "lock"
     capacity: int = 1  # permits at creation
     value: int = 1  # permits available now (semaphores)
     holders: list[str] = field(default_factory=list)  # one per hold
     waiters: list[dict[str, str | None]] = field(default_factory=list)
+    is_set: bool = False  # event: the flag
+    lock: str | None = None  # condition: id of its associated lock
+    notified: int = 0  # condition: signalled waiters not yet resumed
+    members: list[str] = field(default_factory=list)  # taskgroup: tasks
+    running: int = 0  # taskgroup: member tasks not finished
 
 
 @dataclass

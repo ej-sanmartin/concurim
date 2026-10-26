@@ -5,6 +5,8 @@ Each rule returns ``(title, text, tone)``.
 
 from __future__ import annotations
 
+from concurim.replay.rules_exec import copy_note
+
 
 def _thread_registered(n, ev, f):
     return (
@@ -17,6 +19,14 @@ def _thread_registered(n, ev, f):
 
 def _start_requested(n, ev, f):
     child = ev.metadata.get("child_name", "a new thread")
+    if ev.metadata.get("process"):
+        return (
+            "Process start requested",
+            f"{n.t} called start() for process “{child}”. It runs with its "
+            "own memory, at any later moment. "
+            f"{copy_note(ev.metadata)}".rstrip(),
+            "info",
+        )
     return (
         "Thread start requested",
         f"{n.t} called start() for thread “{child}”. The new thread may "

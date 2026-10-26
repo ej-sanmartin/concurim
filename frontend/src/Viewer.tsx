@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeView } from "./components/CodeView";
 import { Controls } from "./components/Controls";
+import type { ExportCaps } from "./api/types";
 import { EventDetail } from "./components/EventDetail";
 import { EventLog } from "./components/EventLog";
 import { Explanation } from "./components/Explanation";
@@ -9,6 +10,7 @@ import { Lineage } from "./components/Lineage";
 import { readCapture, useCaptureBridge } from "./capture";
 import { Timeline } from "./components/Timeline";
 import { TraceInfo } from "./components/TraceInfo";
+import { ExportDialog } from "./export/ExportDialog";
 import { computeLayout } from "./models/layout";
 import type { Replay } from "./models/replay";
 import type { Selection } from "./models/selection";
@@ -43,6 +45,8 @@ interface Props {
   theme: "dark" | "light";
   onToggleTheme: () => void;
   onHome: () => void;
+  /** What the server can export; null when there is no server (dev). */
+  exportCaps: ExportCaps | null;
 }
 
 /**
@@ -51,7 +55,9 @@ interface Props {
  * Both share one playback position, so an event picked in one is the event
  * shown in the other.
  */
-export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
+export function Viewer({
+  replay, label, theme, onToggleTheme, onHome, exportCaps,
+}: Props) {
   const states = useMemo(() => buildStates(replay), [replay]);
   const layout = useMemo(() => computeLayout(replay), [replay]);
   const indexById = useMemo(
@@ -64,6 +70,7 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
     () => capture?.view ?? initialMode());
   const [fitTick, setFitTick] = useState(0);
   const [fullscreen, setFs] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const appRef = useRef<HTMLDivElement | null>(null);
 
   // Real browser fullscreen when allowed; otherwise the same layout in-page.
@@ -88,8 +95,8 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
     localStorage.setItem(MODE_KEY, m);
   };
   useCaptureBridge(!!capture, replay.events.length, pb.seek);
-  // Videos never tween: each frame is exactly the state of one event.
-  const motionMs = capture ? 0 : pb.motionMs;
+  // Videos glide for a fixed time on a clock the exporter winds by hand.
+  const motionMs = capture ? capture.motionMs : pb.motionMs;
   const jump = (to: number | null) => to !== null && pb.seek(to);
   const actions: KeyActions = {
     blocking: (dir) => jump(nextBlocking(replay.events, pb.index, dir)),
@@ -133,6 +140,13 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
           ))}
         </div>
         <div className="meta">
+          {exportCaps && (
+            <button className="export-btn" data-testid="open-export"
+              onClick={() => setExporting(true)}
+              title="Render this recording as a video, GIF or images">
+              Export…
+            </button>
+          )}
           {label || meta.program?.script || "trace"} · {replay.events.length} events ·{" "}
           {(replay.summary.duration_ns / 1e9).toFixed(2)}s
           {replay.warnings.length > 0 && (
@@ -201,6 +215,10 @@ export function Viewer({ replay, label, theme, onToggleTheme, onHome }: Props) {
       </main>
       {mode !== "timeline" && (
         <Timeline replay={replay} layout={layout} index={pb.index} onSeek={pb.seek} />
+      )}
+      {exporting && exportCaps && (
+        <ExportDialog caps={exportCaps} view={mode} index={pb.index}
+          total={replay.events.length} onClose={() => setExporting(false)} />
       )}
       {capture ? (
         capture.footer && <footer className="capture-footer"

@@ -10,7 +10,8 @@ asyncio.
   and `Future.cancel()`, callbacks and `as_completed` for thread pools.
 - Viewer: **Lineage** tab, **Resources** layout, `concurim compare` (side by
   side, GIL on/off, facts only), and `concurim export` (mp4/webm/gif/PNG,
-  deterministic frames, optional `concurim[video]` for ffmpeg).
+  deterministic frames with smooth, reproducible motion, optional
+  `concurim[video]` for ffmpeg), plus an **Export…** dialog in the viewer.
 - Observability levels `sync` (`threading.Lock/RLock/Semaphore/
   BoundedSemaphore`, `ThreadPoolExecutor`) and `asyncio` (tasks, `Queue`,
   `Lock`, `Semaphore`); managed `TracedLock`, `TracedRLock`,

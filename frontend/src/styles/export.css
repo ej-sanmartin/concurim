@@ -1,0 +1,43 @@
+/* ---- export dialog ---- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 50; display: grid; place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+.modal {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  box-shadow: var(--shadow); width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px); overflow: auto; padding: 16px 20px; outline: none;
+}
+.modal header { display: flex; justify-content: space-between; align-items: center; }
+.modal h2 { margin: 0 0 8px; font-size: 17px; }
+.modal footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.modal button, .modal .button {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); padding: 6px 14px; cursor: pointer; font: inherit; text-decoration: none;
+}
+.modal button.link { background: none; border: 0; color: var(--accent); padding: 0 6px; }
+.modal .primary { background: var(--accent); color: var(--token-ink); border-color: var(--accent); font-weight: 600; }
+.modal button:disabled { opacity: 0.45; cursor: default; }
+.export-fields fieldset { border: 1px solid var(--border); border-radius: 10px; margin: 0 0 10px; padding: 8px 12px 10px; }
+.export-fields legend { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 0 6px; }
+.export-fields .choices { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.export-fields label { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.export-fields label[data-disabled] { opacity: 0.45; }
+.export-fields small { color: var(--muted); }
+.export-fields .toggles { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; }
+.export-fields .range { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.export-fields input[type="number"], .export-fields select {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--text); padding: 3px 6px; font: inherit;
+}
+.export-fields input[type="number"] { width: 72px; }
+.export-fields .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+.export-fields .grid label { flex-direction: column; align-items: stretch; color: var(--muted); font-size: 12px; }
+.export-fields .toggle-row { margin-top: 8px; }
+.export-summary { margin: 4px 0; font-size: 13px; color: var(--accent); }
+.export-warning, .export-note { font-size: 12px; color: var(--muted); margin: 6px 0; }
+.export-note { color: var(--c-waiting); }
+.export-error { color: var(--c-failed); font-size: 13px; }
+.export-dialog progress { width: 100%; height: 10px; accent-color: var(--accent); }
+.export-btn { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 3px 12px; cursor: pointer; }
+.export-btn:hover { border-color: var(--accent); }

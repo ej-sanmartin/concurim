@@ -1,6 +1,7 @@
 import type { Replay } from "../models/replay";
 import type {
-  RunPlan, RunRequest, RunStatus, SessionInfo, WorkspaceInfo,
+  ExportRequest, ExportStatus, RunPlan, RunRequest, RunStatus, SessionInfo,
+  WorkspaceInfo,
 } from "./types";
 
 /** The per-launch token the server embeds in the page it serves. */
@@ -54,6 +55,15 @@ export const getRun = (id: string) =>
   call<RunStatus>("GET", `api/runs/${id}`);
 export const cancelRun = (id: string) =>
   call<RunStatus>("POST", `api/runs/${id}/cancel`);
+
+export const startExport = (req: ExportRequest) =>
+  call<ExportStatus>("POST", "api/export", req);
+export const getExport = (id: string) =>
+  call<ExportStatus>("GET", `api/export/${id}`);
+export const cancelExport = (id: string) =>
+  call<ExportStatus>("POST", `api/export/${id}/cancel`);
+/** Where a finished export is downloaded from. */
+export const exportFileUrl = (id: string) => `api/export/${id}/file`;
 
 export async function sampleSource(id: string): Promise<string> {
   const resp = await fetch(`api/samples/${encodeURIComponent(id)}/source`);

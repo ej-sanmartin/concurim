@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { advanceClock } from "./captureClock";
 
 /** Views a video can show (same names as the viewer's modes). */
 export type CaptureView = "animation" | "code" | "timeline" | "resources";
@@ -10,13 +11,20 @@ export interface CaptureOptions {
   overlays: Set<string>;
   /** Text burned into the footer; empty means no footer. */
   footer: string;
+  /** How long the glide between two events lasts, in milliseconds. */
+  motionMs: number;
 }
 
 /** What the exporter calls (through Chrome DevTools) on the page. */
 export interface CaptureBridge {
   ready: boolean;
   total: number;
+  /** Show an event (no time passes: its tweens are at their start). */
   seek: (index: number) => Promise<void>;
+  /** Let ``ms`` of animation time pass, exactly. */
+  advance: (ms: number) => void;
+  /** Run every animation to its end. */
+  settle: () => void;
 }
 
 declare global {
@@ -24,8 +32,10 @@ declare global {
 }
 
 const VIEWS: CaptureView[] = ["animation", "code", "timeline", "resources"];
-const SETTLE_MS = 800;
-const MAX_FRAMES = 120;
+const READY_MS = 800;
+const MAX_POLLS = 200;
+const SETTLE_MS = 2000;
+const STEP_MS = 1000 / 60;
 
 /**
  * Capture options from a query string, or null in normal use.
@@ -42,16 +52,32 @@ export function readCapture(search: string): CaptureOptions | null {
     view: VIEWS.includes(view) ? view : "animation",
     overlays: new Set((q.get("overlays") ?? "").split(",").filter(Boolean)),
     footer: (q.get("footer") ?? "").slice(0, 200),
+    motionMs: Math.min(2000, Math.max(0, Number(q.get("motion") ?? 0) || 0)),
   };
 }
 
-/** Resolves after ``n`` animation frames, so the DOM has been painted. */
-function frames(n: number): Promise<void> {
-  return new Promise((done) => {
-    const tick = (left: number) =>
-      left <= 0 ? done() : requestAnimationFrame(() => tick(left - 1));
-    tick(n);
-  });
+const elapsed = new WeakMap<Animation, number>();
+
+/** Wait a real moment (rendering is asynchronous; time is not involved). */
+const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Advance the fake clock and pin every CSS/Web animation to its new time. */
+function advance(ms: number): void {
+  advanceClock(ms);
+  for (const animation of document.getAnimations()) {
+    const t = (elapsed.get(animation) ?? 0) + ms;
+    elapsed.set(animation, t);
+    animation.pause();
+    animation.currentTime = t;
+  }
+}
+
+/** Run everything to its end, then drop finished animations. */
+function settle(): void {
+  for (let t = 0; t < SETTLE_MS; t += STEP_MS) advance(STEP_MS);
+  for (const animation of document.getAnimations()) {
+    try { animation.finish(); } catch { /* infinite: not used in capture */ }
+  }
 }
 
 /**
@@ -69,16 +95,20 @@ export function useCaptureBridge(
       total,
       seek: async (i) => {
         seek(i);
-        for (let n = 0; n < MAX_FRAMES; n++) {
-          await frames(1);
+        for (let n = 0; n < MAX_POLLS; n++) {
+          await pause(5);
           const app = document.querySelector<HTMLElement>(".app");
           if (app?.dataset.index === String(i)) break;
         }
-        await frames(2);
+        await pause(40);
+        document.body.getBoundingClientRect(); // start CSS transitions now
+        advanceClock(0); // let Motion start its tweens at t = 0
       },
+      advance,
+      settle,
     };
     window.__concurim = bridge;
-    const id = window.setTimeout(() => { bridge.ready = true; }, SETTLE_MS);
+    const id = window.setTimeout(() => { bridge.ready = true; }, READY_MS);
     return () => {
       window.clearTimeout(id);
       delete window.__concurim;

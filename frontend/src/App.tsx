@@ -90,7 +90,9 @@ export function App() {
         </div>
       )
       : <Viewer key={shown.generation} replay={shown.replay} label={shown.label}
-        theme={theme} onToggleTheme={toggleTheme} onHome={() => goHome().catch(fail)} />;
+        theme={theme} onToggleTheme={toggleTheme}
+        onHome={() => goHome().catch(fail)}
+        exportCaps={session?.export ?? null} />;
   } else if (view === "compare" && session) {
     body = <Compare session={session} onToggleTheme={toggleTheme}
       onHome={() => goHome().catch(fail)} />;

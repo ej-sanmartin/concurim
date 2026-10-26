@@ -30,6 +30,44 @@ export interface SessionInfo {
   planned: { title: string; needs: string }[];
   interpreters: Interpreter[];
   cwd: string;
+  export: ExportCaps;
+}
+
+/** What this machine can export, and why not when it cannot. */
+export interface ExportCaps {
+  browser: boolean;
+  ffmpeg: boolean;
+  problems: Record<string, string>;
+  formats: string[];
+  video_formats: string[];
+  views: string[];
+  overlays: string[];
+  themes: string[];
+  sizes: string[];
+}
+
+export interface ExportRequest {
+  format: string;
+  view: string;
+  start: number;
+  end: number;
+  size: string;
+  fps: number;
+  hold: number;
+  motion_ms: number;
+  overlays: string[];
+  footer: boolean;
+  theme: string;
+}
+
+export interface ExportStatus {
+  id: string;
+  state: "running" | "done" | "failed" | "cancelled";
+  done: number;
+  total: number;
+  error: string | null;
+  /** Suggested name of the downloaded file. */
+  filename: string;
 }
 
 export interface WorkspaceInfo {

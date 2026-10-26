@@ -16,10 +16,16 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import unquote
 
 from concurim import __version__
+from concurim.export.cdp import ExportError
 from concurim.recorder.events import TraceFormatError
 from concurim.recorder.serialization import load_trace
 from concurim.samples import find_sample, load_manifest, sample_file
 from concurim.viewer import interpreters
+from concurim.viewer.exports import (
+    ExportConflict,
+    ExportNotFound,
+    capabilities,
+)
 from concurim.viewer.runs import RunConflict, RunError
 from concurim.viewer.workspaces import WorkspaceError
 
@@ -39,6 +45,7 @@ class Response:
     status: int
     body: bytes
     ctype: str = "application/json"
+    filename: str | None = None  # set: sent as a download
 
 
 class ApiError(Exception):
@@ -83,6 +90,7 @@ def _session(srv: ViewerServer, *_: object) -> Response:
             "planned": manifest["planned"],
             "interpreters": interpreters.discover(srv.project_dir),
             "cwd": str(srv.project_dir),
+            "export": capabilities(),
         }
     )
 
@@ -167,6 +175,23 @@ def _run_cancel(srv: ViewerServer, m: re.Match[str], *_: object) -> Response:
     return ok(srv.runs.cancel(m["id"]))
 
 
+def _export_start(srv: ViewerServer, _m: Any, _q: Any, body: bytes) -> Response:
+    return ok(srv.exports.start(_object(body)), 202)
+
+
+def _export_status(srv: ViewerServer, m: re.Match[str], *_: object) -> Response:
+    return ok(srv.exports.status(m["id"]))
+
+
+def _export_cancel(srv: ViewerServer, m: re.Match[str], *_: object) -> Response:
+    return ok(srv.exports.cancel(m["id"]))
+
+
+def _export_file(srv: ViewerServer, m: re.Match[str], *_: object) -> Response:
+    name, data, ctype = srv.exports.file(m["id"])
+    return Response(200, data, ctype, name)
+
+
 # (method, path regex, handler, max request body in bytes)
 ROUTES: list[tuple[str, str, Handler, int]] = [
     ("GET", r"/api/session", _session, 0),
@@ -187,6 +212,10 @@ ROUTES: list[tuple[str, str, Handler, int]] = [
     ("POST", r"/api/runs/(?P<id>\w+)/start", _run_start, MAX_SMALL_JSON),
     ("GET", r"/api/runs/(?P<id>\w+)", _run_status, 0),
     ("POST", r"/api/runs/(?P<id>\w+)/cancel", _run_cancel, 0),
+    ("POST", r"/api/export", _export_start, MAX_SMALL_JSON),
+    ("GET", r"/api/export/(?P<id>\w+)", _export_status, 0),
+    ("POST", r"/api/export/(?P<id>\w+)/cancel", _export_cancel, 0),
+    ("GET", r"/api/export/(?P<id>\w+)/file", _export_file, 0),
 ]
 _COMPILED = [(m, re.compile(p), h, n) for m, p, h, n in ROUTES]
 
@@ -214,7 +243,9 @@ def run_route(
         return handler(srv, match, query, body)
     except ApiError as exc:
         return ok({"error": str(exc)}, exc.status)
-    except RunConflict as exc:
+    except (RunConflict, ExportConflict) as exc:
         return ok({"error": str(exc)}, 409)
-    except (RunError, WorkspaceError, TraceFormatError) as exc:
+    except ExportNotFound as exc:
+        return ok({"error": str(exc)}, 404)
+    except (RunError, WorkspaceError, TraceFormatError, ExportError) as exc:
         return ok({"error": str(exc)}, 400)

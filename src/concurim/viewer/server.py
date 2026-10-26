@@ -26,6 +26,7 @@ from urllib.parse import parse_qsl, urlsplit
 
 from concurim.recorder.serialization import Trace
 from concurim.viewer.api import Response, find_route, ok, run_route
+from concurim.viewer.exports import ExportManager
 from concurim.viewer.runs import RunManager
 from concurim.viewer.session import Session
 from concurim.viewer.workspaces import Workspaces
@@ -66,6 +67,7 @@ class ViewerServer(ThreadingHTTPServer):
         self.token = secrets.token_urlsafe(32)
         self.workspaces = Workspaces()
         self.runs = RunManager(self.workspaces, self.session.load)
+        self.exports = ExportManager(self.session)
         self.project_dir = (project_dir or Path.cwd()).resolve()
         self.static_dir = static_dir.resolve()
         super().__init__(("127.0.0.1", port), _Handler)
@@ -90,6 +92,7 @@ class ViewerServer(ThreadingHTTPServer):
     def server_close(self) -> None:
         """Stop any running program, delete scratch files, close the socket."""
         self.runs.shutdown()
+        self.exports.shutdown()
         super().server_close()
 
 
@@ -165,12 +168,26 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(HTTPStatus.OK, data, ctype)
 
     def _send_response(self, response: Response) -> None:
-        self._send(HTTPStatus(response.status), response.body, response.ctype)
+        self._send(
+            HTTPStatus(response.status),
+            response.body,
+            response.ctype,
+            response.filename,
+        )
 
-    def _send(self, status: HTTPStatus, body: bytes, ctype: str) -> None:
+    def _send(
+        self,
+        status: HTTPStatus,
+        body: bytes,
+        ctype: str,
+        filename: str | None = None,
+    ) -> None:
         self.send_response(status)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        if filename:  # a safe name chosen by the server (see exports.py)
+            disposition = f'attachment; filename="{filename}"'
+            self.send_header("Content-Disposition", disposition)
         self.send_header("Content-Security-Policy", CSP)
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")

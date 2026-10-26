@@ -2,7 +2,7 @@
 .app[data-capture] { grid-template-rows: minmax(0, 1fr) auto auto; }
 .app[data-capture] > .top { display: none; }
 .app[data-capture] *, .app[data-capture] *::before, .app[data-capture] *::after {
-  transition: none !important; animation: none !important;
+  animation: none !important; /* looping pulses: never reproducible */
   caret-color: transparent;
 }
 .app[data-capture][data-hide-timeline] > .timeline:not(.full) { display: none; }

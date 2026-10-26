@@ -100,10 +100,15 @@
   browser (Chrome, Edge, Chromium, Brave; `$CONCURIM_BROWSER` overrides) and
   encodes with ffmpeg (on `PATH`, or `pip install 'concurim[video]'`). macOS
   and Linux only.
-- Frames are exact: each shows one event's state with no tweens or looping
-  animation, so the same trace gives identical frames on one machine and
-  browser. Pixels (fonts, anti-aliasing) can differ between machines. Items
-  jump between places rather than glide.
+- Frames are reproducible: the page's clock is wound by hand, one frame at a
+  time, so the glide between two events is the same on every run (same
+  machine and browser: byte-identical files). `--motion 0` cuts straight
+  between events instead. Looping pulses are switched off. Pixels (fonts,
+  anti-aliasing) can differ between machines.
+- The **Export…** button in the viewer's top bar does the same from the web
+  UI: format, view, overlays, event range, size, pace and theme. The server
+  renders one clip at a time into a private temporary folder, and the file
+  downloads from the dialog. The footer hash is of the replay document.
 - A clip shows what the picture shows: review paths, thread names and source
   before sharing. No captions yet.
 
@@ -164,5 +169,5 @@
   the log fold into one row (`×N`).
 ## Roadmap (not implemented)
 
-Barriers · smooth in-between motion in videos and captions · live view ·
+Barriers · captions in videos · live view ·
 Perfetto/VizTracer import · editor extension.

@@ -102,12 +102,6 @@ export function CodeView({ replay, world, index, event }: Props) {
           );
         })}
       </div>
-      <p className="muted codeview-note">
-        Each worker is shown at its last known location. Blocked calls and
-        awaits are exact. A line marked ≈ is sampled every few milliseconds, so
-        it is approximate and very short lines can be missed. A shaded body
-        means only the function is known.
-      </p>
     </div>
   );
 }

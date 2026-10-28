@@ -7,31 +7,6 @@
 **See how Python runs together.** Concurim records what your threads and
 asyncio tasks actually do, then replays that one run as an animation.
 
-## Setup
-
-`uvx concurim` opens the home screen. From a checkout:
-
-```bash
-git clone https://github.com/ej-sanmartin/concurim.git
-cd concurim
-uv sync
-
-uv run concurim
-uv run concurim demo
-uv run concurim record --open --auto sync my_app.py
-uv run concurim record --open --include-source -o run.concurim my_app.py arg1
-uv run concurim view run.concurim
-uv run concurim inspect run.concurim
-uv run concurim compare one.concurim two.concurim
-uv run concurim export run.concurim -o clip.mp4 --events 5:40
-```
-
-`uv run concurim` opens the page. Drop a `.py` file or a folder, read the
-plan, then click **Record execution**. Drop a `.concurim` file, or open
-an example, and nothing runs. Options on `record` come before the script.
-`uvx concurim record` cannot import a project's packages; install it
-there with `uv add --dev concurim` and use `uv run`.
-
 ![Concurim viewer, dark theme][viewer-dark]
 
 *A recording of [`threaded_pipeline.py`][sample-pipeline]
@@ -41,6 +16,74 @@ capacity 3.*
 > **Status: 1.0.** Threads, queues, locks, events, barriers, pools,
 > and asyncio are included.
 > [What is and is not observed][doc-limits].
+
+## Setup
+
+From a checkout, install the project, then open the page or record a run.
+`uvx concurim` is the same home screen without cloning.
+
+```bash
+git clone https://github.com/ej-sanmartin/concurim.git
+cd concurim
+uv sync
+```
+
+`git clone` copies the repo, `cd` enters it, and `uv sync` installs this
+project and its dependencies so the commands below run with `uv run`.
+
+```bash
+uv run concurim
+```
+
+Opens the page in your browser. Drop a `.py` file or a folder, read the
+plan, then click **Record execution**. Drop a `.concurim` file, or open
+an example, and nothing runs.
+
+```bash
+uv run concurim demo
+```
+
+Records the bundled pipeline (the picture above) and opens it.
+
+```bash
+uv run concurim record --open --auto sync my_app.py
+```
+
+Runs `my_app.py` and writes a trace. `--auto sync` records threads,
+queues, locks, events, barriers, and pools. The default is thread start
+and finish. `--open` opens the viewer when the run returns. Options on
+`record` come before the script; everything after the script path is
+passed to your program.
+
+```bash
+uv run concurim record --open --include-source -o run.concurim my_app.py arg1
+```
+
+Runs `my_app.py` with the argument `arg1`. `--include-source` embeds
+source so the Code view can show it. `-o` writes the trace to
+`run.concurim` (the default path is `<script>.concurim`). This example
+records threads only.
+
+```bash
+uv run concurim view run.concurim
+uv run concurim inspect run.concurim
+uv run concurim compare one.concurim two.concurim
+```
+
+`view` opens a saved trace. `inspect` prints when the trace was
+recorded, how long it ran, and how many events it holds. `compare`
+opens two recordings side by side.
+
+```bash
+uv run concurim export run.concurim -o clip.mp4 --events 5:40
+```
+
+Renders events 5 through 40 as `clip.mp4`. It only reads the trace. It
+needs a Chrome-family browser and ffmpeg (`uv run --with imageio-ffmpeg`,
+or `concurim[video]` once the package is published).
+
+`uvx concurim record` cannot import a project's packages. Install it
+there with `uv add --dev concurim` and use `uv run`.
 
 ## Guide
 

@@ -25,16 +25,19 @@ capacity 3.*
 
 ## Setup
 
-From a checkout, install the project, then open the page or record a run.
-`uvx concurim` is the same home screen without cloning.
+```bash
+pip install concurim
+concurim
+```
+
+Or from a checkout. The examples below use `uv run concurim` from there;
+after `pip install`, the command is `concurim`. `uvx concurim` opens the
+same home screen without installing.
 
 ```bash
 git clone https://github.com/ej-sanmartin/concurim.git
 cd concurim
 uv sync
-```
-
-```bash
 uv run concurim
 ```
 

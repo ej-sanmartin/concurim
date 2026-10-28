@@ -5,6 +5,8 @@
 First vertical slice, then the GUI-first milestone, then locks, pools and
 asyncio.
 
+- A short guide in `docs/`: getting started, concepts, recording,
+  reading a run, and which example to open.
 - Barriers (`threading` and `asyncio`): who has arrived, the release
   when the party is complete, and abort or reset. The home screen includes
   a three-worker example.

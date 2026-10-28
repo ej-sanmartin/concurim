@@ -214,7 +214,8 @@ scripts/build.sh                   # builds the viewer into the package, then uv
 scripts/smoke_wheel.sh             # installs the wheel into a clean venv and runs it
 ```
 
-More: [documentation map](docs/index.md),
+More: [getting started](docs/getting-started.md),
+[documentation map](docs/index.md),
 [trace format](docs/trace-format.md), [limitations](docs/limitations.md),
 [contributing](CONTRIBUTING.md), [changelog](CHANGELOG.md).
 

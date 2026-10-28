@@ -67,6 +67,7 @@ from concurim import TracedQueue, TracedThread, work
 
 jobs = TracedQueue(maxsize=3, name="Jobs")
 
+
 def worker():
     while True:
         try:

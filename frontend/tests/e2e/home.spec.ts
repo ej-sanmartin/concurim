@@ -3,6 +3,7 @@ import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { openSample } from "./helpers";
 
 // A server with nothing loaded: the home screen, examples, drop and run.
 test.use({ baseURL: "http://127.0.0.1:8798" });
@@ -152,20 +153,20 @@ test("a project folder offers entry-point selection", async ({ page }) => {
 
 test("new examples show locks, semaphores, a thread pool and asyncio tasks", async ({ page }) => {
   await goHome(page);
-  await page.getByTestId("open-lock-contention").click();
+  await openSample(page, "lock-contention");
   await page.getByTestId("flow").waitFor();
   await expect(page.getByTestId("sync")).toHaveCount(1);
   await expect(page.getByTestId("sync")).toContainText("lock");
   await page.getByTestId("home").click();
-  await page.getByTestId("open-semaphore").click();
+  await openSample(page, "semaphore");
   await page.getByTestId("flow").waitFor();
   await expect(page.getByTestId("sync")).toContainText("permits free");
   await page.getByTestId("home").click();
-  await page.getByTestId("open-thread-pool").click();
+  await openSample(page, "thread-pool");
   await page.getByTestId("flow").waitFor();
   await expect(page.getByTestId("executor")).toContainText("running");
   await page.getByTestId("home").click();
-  await page.getByTestId("open-asyncio-tasks").click();
+  await openSample(page, "asyncio-tasks");
   await page.getByTestId("flow").waitFor();
   await expect(page.getByTestId("thread").filter({ hasText: "task" }).first()).toBeVisible();
 });

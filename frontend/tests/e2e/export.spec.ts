@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { openSample } from "./helpers";
 
 // The export dialog, on a real recording (home server: samples).
 test.use({ baseURL: "http://127.0.0.1:8798" });
@@ -8,7 +9,7 @@ async function open(page: Page, sample: string) {
   await page.goto("/");
   await page.getByTestId("home-screen").or(page.getByTestId("home")).first().waitFor();
   if (await page.getByTestId("home").isVisible()) await page.getByTestId("home").click();
-  await page.getByTestId(`open-${sample}`).click();
+  await openSample(page, sample);
   await page.getByTestId("flow").waitFor();
 }
 

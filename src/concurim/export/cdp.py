@@ -15,6 +15,7 @@ import os
 import select
 import shutil
 import signal
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -67,10 +68,41 @@ def find_browser() -> str:
     )
 
 
+def _require_posix() -> None:
+    """Raise if video export cannot run on this operating system."""
+    if sys.platform == "win32":
+        raise ExportError("video export needs macOS or Linux")
+
+
+def _spawn_browser(
+    executable: str,
+    args: list[str],
+    to_browser_r: int,
+    from_browser_w: int,
+) -> int:
+    """Start ``executable`` with the DevTools pipe on fds 3 and 4.
+
+    ``to_browser_r`` becomes fd 3 and ``from_browser_w`` becomes fd 4.
+    Returns the child pid. macOS and Linux only. The platform test is
+    inline so the type checker can see ``os.posix_spawn`` on Unix.
+    """
+    if sys.platform == "win32":
+        raise ExportError("video export needs macOS or Linux")
+    actions = [
+        (os.POSIX_SPAWN_DUP2, to_browser_r, 3),
+        (os.POSIX_SPAWN_DUP2, from_browser_w, 4),
+        # Browser chatter is not the user's business.
+        (os.POSIX_SPAWN_OPEN, 1, os.devnull, os.O_WRONLY, 0),
+        (os.POSIX_SPAWN_OPEN, 2, os.devnull, os.O_WRONLY, 0),
+    ]
+    return os.posix_spawn(executable, args, os.environ, file_actions=actions)
+
+
 class Browser:
     """A headless browser with one page, driven over the DevTools pipe."""
 
     def __init__(self, executable: str, width: int, height: int) -> None:
+        _require_posix()
         self._profile = tempfile.mkdtemp(prefix="concurim-browser-")
         self._next_id = 0
         self._buffer = b""
@@ -91,15 +123,8 @@ class Browser:
             f"--window-size={width},{height}",
             "about:blank",
         ]
-        actions = [
-            (os.POSIX_SPAWN_DUP2, to_browser_r, 3),
-            (os.POSIX_SPAWN_DUP2, from_browser_w, 4),
-            # Browser chatter is not the user's business.
-            (os.POSIX_SPAWN_OPEN, 1, os.devnull, os.O_WRONLY, 0),
-            (os.POSIX_SPAWN_OPEN, 2, os.devnull, os.O_WRONLY, 0),
-        ]
-        self._pid = os.posix_spawn(
-            executable, args, os.environ, file_actions=actions
+        self._pid = _spawn_browser(
+            executable, args, to_browser_r, from_browser_w
         )
         os.close(to_browser_r)
         os.close(from_browser_w)

@@ -3,7 +3,12 @@ import sys
 import pytest
 
 from concurim.export import sink, video
-from concurim.export.cdp import BROWSER_ENV, ExportError, find_browser
+from concurim.export.cdp import (
+    BROWSER_ENV,
+    Browser,
+    ExportError,
+    find_browser,
+)
 from concurim.export.cli import _parse_events
 from concurim.export.options import (
     ExportOptions,
@@ -32,6 +37,17 @@ def test_size_and_event_parsing():
 def test_footer_names_the_recording_range_and_hash():
     text = video._footer("run.concurim", 5, 9, 31, "abcdef0123456789")
     assert text == "run.concurim · events 5-9 of 31 · sha256 abcdef012345"
+
+
+def test_browser_refuses_windows(monkeypatch):
+    monkeypatch.setattr("concurim.export.cdp.sys.platform", "win32")
+
+    def _no_profile(*_args, **_kwargs):
+        pytest.fail("created a browser profile")
+
+    monkeypatch.setattr("concurim.export.cdp.tempfile.mkdtemp", _no_profile)
+    with pytest.raises(ExportError, match="macOS or Linux"):
+        Browser("chrome", 640, 360)
 
 
 def test_missing_tools_give_actionable_errors(monkeypatch):

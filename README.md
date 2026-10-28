@@ -2,6 +2,7 @@
   <img src="https://raw.githubusercontent.com/ej-sanmartin/concurim/main/docs/images/logo.png" alt="Concurim" width="200"/>
   <br>
   <a href="https://github.com/ej-sanmartin/concurim/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ej-sanmartin/concurim/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://pypi.org/project/concurim/"><img alt="PyPI" src="https://img.shields.io/pypi/v/concurim?color=blue"></a>
   <a href="https://github.com/ej-sanmartin/concurim/blob/main/CHANGELOG.md"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue"></a>
   <a href="https://github.com/ej-sanmartin/concurim/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="Python 3.13+" src="https://img.shields.io/badge/python-3.13%2B-blue">
@@ -85,7 +86,7 @@ uv run concurim export run.concurim -o clip.mp4 --events 5:40
 
 Renders events 5 through 40 as `clip.mp4`. It only reads the trace. It
 needs a Chrome-family browser and ffmpeg (`uv run --with imageio-ffmpeg`,
-or `concurim[video]` once the package is published).
+or `pip install 'concurim[video]'`).
 
 `uvx concurim record` cannot import a project's packages. Install it
 there with `uv add --dev concurim` and use `uv run`.

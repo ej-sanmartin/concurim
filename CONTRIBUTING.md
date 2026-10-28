@@ -40,25 +40,36 @@ dependencies are currently zero).
 
 ## Publishing
 
-0.1.0 is not on PyPI yet. The `pyproject.toml` metadata (SPDX license,
-readme, classifiers, project URLs, the `concurim` script) is what the
-upload will use. From a clean tree, after `scripts/build.sh`:
+Pushing a version tag is what publishes to PyPI. The tag, `version` in
+`pyproject.toml`, and `__version__` in `src/concurim/__init__.py` must
+be the same number (`v1.0.0` for 1.0.0). PyPI rejects a repeated version.
+
+One-time, at <https://pypi.org/manage/account/publishing/>, add a pending
+publisher:
+
+| Field | Value |
+| --- | --- |
+| PyPI project name | `concurim` |
+| Owner | `ej-sanmartin` |
+| Repository name | `concurim` |
+| Workflow name | `release.yml` |
+| Environment name | `pypi` |
+
+No API token. Then, from a commit already on `main`:
 
 ```bash
-uv build
-uvx twine check dist/*
+git tag v1.0.0
+git push origin v1.0.0
 ```
 
-Upload only when cutting the release. Do not upload from a dirty tree, and
-do not upload over an existing version: PyPI rejects a repeated version.
+`.github/workflows/release.yml` builds the package, uploads it, and opens
+the GitHub release. Do not also upload that version with twine or
+`uv publish`.
 
-```bash
-uvx twine upload dist/*
-```
-
-Install paths once that version is on PyPI: `uvx concurim` (home screen;
-the server copies itself onto the interpreter you pick) and
-`uv add --dev concurim` when `concurim record` must import the project.
+Check a build locally with `scripts/build.sh` and `scripts/smoke_wheel.sh`.
+Once the version is on PyPI: `uvx concurim` (home screen; the server
+copies itself onto the interpreter you pick) and `uv add --dev concurim`
+when `concurim record` must import the project.
 
 ## Frontend development note
 

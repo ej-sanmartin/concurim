@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 1.0.0
 
 First vertical slice, then the GUI-first milestone, then locks, pools and
 asyncio.
@@ -18,7 +18,6 @@ asyncio.
   gets stuck still leaves a trace: the buffer is flushed about once a second
   and again on SIGINT or SIGTERM, and the viewer says who is still waiting
   on locks one another holds. `concurim record --open` opens that picture.
-  Packaging metadata is ready for PyPI; 0.1.0 has not been uploaded.
 - Events and conditions (`threading` and `asyncio`), `asyncio.TaskGroup`,
   `multiprocessing` `Pool` and `Process` (copied versus shared arguments),
   and `Future.cancel()`, callbacks and `as_completed` for thread pools.

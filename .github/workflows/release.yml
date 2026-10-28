@@ -1,7 +1,8 @@
-# Publishes to PyPI with Trusted Publishing (OIDC): no stored API token.
-# One-time setup, done by the maintainers on pypi.org: add this repository,
-# workflow `release.yml` and environment `pypi` as a trusted publisher.
-# Triggered only by pushing a version tag such as v0.1.0.
+# Publishes to PyPI when a version tag is pushed, for example v1.0.0.
+# One-time setup on https://pypi.org/manage/account/publishing/ :
+# pending publisher for project concurim, owner ej-sanmartin,
+# repository concurim, workflow release.yml, environment pypi.
+# No API token. Do not also upload that same version by hand.
 name: Release
 on:
   push:
@@ -12,6 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Tag matches the package version
+        run: |
+          version=$(sed -n 's/^version = "\(.*\)"/\1/p' pyproject.toml | head -1)
+          init=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' src/concurim/__init__.py | head -1)
+          tag="${GITHUB_REF_NAME#v}"
+          test -n "$version"
+          test "$tag" = "$version"
+          test "$init" = "$version"
       - uses: astral-sh/setup-uv@v5
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
@@ -24,10 +33,13 @@ jobs:
   publish:
     needs: build
     runs-on: ubuntu-latest
-    environment: pypi
+    environment:
+      name: pypi
+      url: https://pypi.org/project/concurim/
     permissions:
-      id-token: write   # short-lived OIDC credential
-      contents: write   # to create the GitHub release
+      id-token: write
+      attestations: write
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with: { name: dist, path: dist/ }

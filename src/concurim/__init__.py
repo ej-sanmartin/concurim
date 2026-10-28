@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 from concurim.config import RecorderConfig
 from concurim.instrumentation.aio_events import (

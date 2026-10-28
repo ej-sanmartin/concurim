@@ -4,9 +4,8 @@ Open the home screen and drop a program, or record from the terminal.
 Either way you get one picture of the run that actually happened.
 
 Commands below use `uv run concurim` from a checkout of this repo.
-After 0.1.0 is on PyPI, `uvx concurim` is the same home screen, and
-`uv add --dev concurim` is how `concurim record` can import a project's
-own packages.
+`uvx concurim` is the same home screen. `uv add --dev concurim` is how
+`concurim record` can import a project's own packages.
 
 ## Open the page
 

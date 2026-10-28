@@ -4,219 +4,62 @@
 
 # Concurim
 
-**See how Python runs together.**
+**See how Python runs together.** Concurim records what your threads and
+asyncio tasks actually do, then replays that one run as an animation.
 
-Concurim records what your threads and asyncio tasks actually do (queues,
-locks, semaphores, thread pools), then replays it as an interactive
-animation: which worker is running, which is blocked and why, who holds each
-lock, where every item is, and what each event means.
+## Setup
+
+From a checkout. After 0.1.0 is on PyPI, `uvx concurim` opens the same
+home screen.
+
+```bash
+git clone https://github.com/ej-sanmartin/concurim.git
+cd concurim
+uv sync
+
+uv run concurim
+uv run concurim demo
+uv run concurim record --open --auto sync my_app.py
+uv run concurim record --open --include-source -o run.concurim my_app.py arg1
+uv run concurim view run.concurim
+uv run concurim inspect run.concurim
+uv run concurim compare one.concurim two.concurim
+uv run concurim export run.concurim -o clip.mp4 --events 5:40
+```
+
+`uv run concurim` opens the page. Drop a `.py` file or a folder, read the
+plan, then click **Record execution**. Drop a `.concurim` file, or open
+an example, and nothing runs. Options on `record` come before the script.
+`uvx concurim record` cannot import a project's packages; install it
+there with `uv add --dev concurim` and use `uv run`.
 
 ![Concurim viewer, dark theme](docs/images/viewer-dark.png)
 
-*A real recording of [`src/concurim/samples/threaded_pipeline.py`](src/concurim/samples/threaded_pipeline.py)
-(event 41 of 120): two producers and two consumers share a queue of capacity 3.
-Items 5 and 4 are queued (the front is on the right), consumer-1 is working on
-1 and consumer-2 on 3, and both producers are still inside a blocked `put`
-with items 6 and 7 in hand.*
+*A recording of [`threaded_pipeline.py`](src/concurim/samples/threaded_pipeline.py)
+(event 41 of 120): two producers and two consumers share a queue of
+capacity 3.*
 
-> **Status: 0.1 (alpha).** Threads, `queue.Queue`, locks, semaphores,
-> `ThreadPoolExecutor`, `ProcessPoolExecutor` and asyncio (tasks, queues,
-> locks), recorded automatically or with Concurim-managed primitives.
-> Events, conditions, barriers (`threading` and `asyncio`),
-> `asyncio.TaskGroup`, `multiprocessing` (`Pool`, `Process`), a lineage
-> browser, a resources layout, run comparison (`concurim compare`) and
-> video export (`concurim export`) are included. See
-> [what is and is not observed](docs/limitations.md).
+> **Status: 0.1 (alpha).** Not on PyPI yet. Threads, queues, locks,
+> events, barriers, pools, and asyncio are included.
+> [What is and is not observed](docs/limitations.md).
 
-## Try it
-
-```bash
-git clone <this repo> && cd concurim
-uv sync
-uv run concurim             # opens the home screen in your browser
-uv run concurim demo        # records a real threaded pipeline and opens it
-```
-
-Not on PyPI yet. When 0.1.0 is uploaded: `uvx concurim` opens this home
-screen (Concurim copies itself onto the interpreter you choose), and
-`uv add --dev concurim` is how `concurim record` sees a project's own
-imports. See [publishing](CONTRIBUTING.md#publishing).
-
-On the home screen you can:
-
-- **Drop a `.concurim` trace** (or open an example): it opens immediately and
-  nothing is executed.
-- **Drop a `.py` file or a project folder**, pick the entry point, interpreter,
-  arguments and observability level, review the plan, then click
-  **Record execution**. The finished recording opens automatically. A dropped
-  program is *never* run until you click, and it runs with your user's
-  permissions (there is no sandbox).
-
-### Compare and export
-
-```bash
-uv run concurim compare gil.concurim free-threaded.concurim
-uv run concurim export run.concurim -o clip.mp4 --view code --events 5:40
-```
-
-The viewer's **Export…** button opens the same options in a dialog.
-`export` also writes `.webm`, `.gif`, or a directory of PNG frames
-(`--hide explanation|timeline`, `--size 1080p`, `--motion 0`,
-`--no-footer`, `--no-watermark`). Items glide between events, and the
-logo sits in the top-left unless you turn it off. It needs a
-Chrome-family browser and ffmpeg (`pip install 'concurim[video]'` bundles
-one); the picture is deterministic for a given trace. It only loads the
-trace; it never runs your program.
-
-### Observability levels
-
-| Level | What it does | You see |
-| --- | --- | --- |
-| Basic (default) | Nothing patched | Only what you instrument |
-| Threads | Records `threading.Thread` start/run/finish | Thread lifecycles |
-| Threads + queues | Also swaps `queue.Queue` while recording (reversed on exit) | Queue operations and item identity |
-| + locks, semaphores, pools | Also swaps `threading.Lock/RLock/Semaphore/BoundedSemaphore` and `ThreadPoolExecutor` / `ProcessPoolExecutor` | Who holds or waits for each lock, permits, tasks flowing through a pool |
-| + asyncio | Also patches task creation/stepping and `asyncio.Queue/Lock/Semaphore` | Tasks as actors, awaits on queues and locks |
-| Managed | You use `TracedQueue` / `TracedLock` / `TracedThreadPoolExecutor` / ... | Full detail incl. lineage (`derived_from`) |
-
-Anything a level cannot see is shown as unavailable, never guessed. Choose with
-`concurim record --auto none|threads|queues|sync|asyncio`. Only objects your
-own code creates are traced, and only while recording
-([details and caveats](docs/limitations.md)).
-
-## Record your own program
-
-For full detail (item identity, work spans), use the traced primitives:
-
-```python
-import queue
-from concurim import TracedQueue, TracedThread, work
-
-jobs = TracedQueue(maxsize=3, name="Jobs")
-
-
-def worker():
-    while True:
-        try:
-            item = jobs.get_with_id()  # value + logical object id
-        except queue.ShutDown:
-            return
-        with work("process", object_id=item.object_id):  # observed work span
-            handle(item.value)
-        jobs.task_done()
-
-
-threads = [TracedThread(target=worker, name=f"worker-{i}") for i in range(2)]
-...
-```
-
-Outside a recording they behave exactly like `queue.Queue` / `threading.Thread`.
-
-```bash
-uv run concurim record src/concurim/samples/threaded_pipeline.py          # -> threaded_pipeline.concurim
-uv run concurim record --open -o run.concurim --include-source my_app.py arg1 arg2
-uv run concurim view run.concurim
-uv run concurim inspect run.concurim                           # metadata + coverage
-```
-
-Options go **before** the script; everything after the script path is passed to
-your program unchanged. `--open` starts the viewer when the run returns.
-A file that does not compile is refused and nothing is recorded. A program
-that starts and then raises is recorded, including the exception.
-
-If the program gets stuck, the trace is still written: about once a second
-while it runs, and again on Ctrl-C or SIGTERM. Playback runs up to the last
-observed event. When actors are waiting on locks one another holds, the
-viewer says so and can jump to that moment. That is this run, not a search
-through other schedules. **Watch so far** on the home screen opens the latest
-snapshot before the program exits.
-
-Or record from code:
-
-```python
-from concurim import record, TracedQueue
-
-with record("trace.concurim"):
-    jobs = TracedQueue(maxsize=5, name="Jobs")
-    ...
-```
-
-When Concurim is installed as a standalone tool (`uv tool install`, `uvx`) it
-runs in its own environment and cannot import *your* project's dependencies.
-To record a project, install Concurim into the project
-(`uv add --dev concurim`, then `uv run concurim record ...`).
-
-## Using the viewer
-
-| Action | How |
-| --- | --- |
-| Play / pause | `Space` or ▶ |
-| Step forward / back | `→` / `←` (`Shift` = 10 events) |
-| Beginning / end | `Home` / `End` |
-| Speed | `[` `]` or the speed menu |
-| Seek | scrub bar, event number box, or click/drag the timeline |
-| Inspect | click a thread or task, a queue or pool, a lock, or an item token |
-| Drag / zoom | drag nodes, scroll to zoom; layout is remembered. **Fit** / **Reset layout** in the toolbar, `f` fits |
-| Views | **Animation** (understanding), **Code** (the animation beside the source: each busy worker's line is lit in its item's colour; needs `--include-source`) or **Timeline** (dense, technical); same position, click an event then *Show in animation* |
-| Fullscreen | ⤢ in the transport bar or `z`; the playback controls stay, `Esc`, `z` or *Exit fullscreen* returns |
-| Pacing | *Explain* slows down blocking events; *Real time* follows recorded gaps (optionally compressing idle time) |
-| Jump | next blocking event, next event for the selection |
-| Many workers | **Group workers** collapses groups of 4+ into one node (automatic above 24); repeating events in the **Log** fold into `×N` |
-| Source | In **Event**, the source location opens **Code** on that line |
-
-The explanation card describes the current event and labels anything inferred.
-Dashed thread borders mean the state is *inferred* (for example "running, not
-blocked"), solid borders mean it was observed.
-
-## What you can trust
-
-- Queue contents change only on recorded events, in true mutation order.
-- *Queued* and *unfinished* are different numbers: a dequeued item leaves the
-  queue but stays unfinished until `task_done()`.
-- `task_done()` doesn't say which item finished; Concurim only attributes it
-  when you pass `object_id=`, otherwise it labels the pairing as inferred.
-- Truncated recordings, uninstrumented objects and unobservable behavior
-  (CPU scheduling, the GIL) are stated in the trace and the UI.
-
-## Privacy and security
-
-Local only: the viewer binds `127.0.0.1`, has no telemetry or uploads, validates
-traces on load (no pickle, no code execution), and serves source only from the
-trace. Source and payload previews are **off by default**. A trace can contain
-paths, thread names and, if enabled, code or data previews: review before
-sharing. Recording changes timing. See [SECURITY.md](SECURITY.md).
-
-## Cost
-
-Measured on an Apple-silicon laptop, CPython 3.13 (`scripts/benchmark.py`):
+## Guide
 
 | | |
 | --- | --- |
-| `TracedQueue` while not recording | ~2× a bare `queue.Queue` call (≈0.5 µs more) |
-| Recording, detailed or light | ≈10 µs per put+get pair (≈20× a bare, work-free loop) |
-| Memory while recording | ≈550 B/event (in-memory buffer) |
-| Trace size | ≈19 B/event on disk (zip) |
-| Load + replay | ≈1.5 s for 80k events |
+| [Getting started](docs/getting-started.md) | The page, the commands, a stuck run |
+| [Concepts](docs/concepts.md) | One schedule, observed versus inferred, what you can trust |
+| [Recording](docs/recording.md) | Home screen, `--auto`, `record()`, `Traced*` |
+| [Reading a run](docs/reading-a-run.md) | Animation, Code, Timeline, compare, export |
+| [Teaching](docs/teaching.md) | Which example to open |
+| [Cost](docs/cost.md) | Overhead of recording |
+| [Limitations](docs/limitations.md) | Caveats |
+| [Trace format](docs/trace-format.md) | The `.concurim` file |
+| [Security](SECURITY.md) | Local only. Review a trace before sharing it |
+| [Contributing](CONTRIBUTING.md) | Tests, style, publishing |
+| [Changelog](CHANGELOG.md) | What 0.1.0 contains |
 
-Instrumentation overhead dominates only when threads do no real work; with real
-work between queue operations it is usually negligible, but always re-measure.
-
-## Development
-
-```bash
-uv sync
-uv run pytest                      # unit, integration, concurrency tests
-uv run ruff check . && uv run ruff format --check .
-uv run ty check src
-cd frontend && npm ci && npm test  # frontend logic tests
-npx playwright install chromium && npm run e2e
-scripts/build.sh                   # builds the viewer into the package, then uv build
-scripts/smoke_wheel.sh             # installs the wheel into a clean venv and runs it
-```
-
-More: [getting started](docs/getting-started.md),
-[documentation map](docs/index.md),
-[trace format](docs/trace-format.md), [limitations](docs/limitations.md),
-[contributing](CONTRIBUTING.md), [changelog](CHANGELOG.md).
+The viewer binds `127.0.0.1` and has no telemetry. Source and payload
+previews are off unless you ask for them.
 
 MIT licensed.

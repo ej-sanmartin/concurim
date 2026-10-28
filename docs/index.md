@@ -11,6 +11,7 @@ The [README](../README.md) is the tour. These pages are the short guide.
 | [Recording](recording.md) | Home screen, CLI, `record()`, `Traced*` |
 | [Reading a run](reading-a-run.md) | Animation, Code, Timeline, compare, export |
 | [Teaching](teaching.md) | Which bundled example shows which idea |
+| [Cost](cost.md) | Overhead of recording |
 | [Limitations](limitations.md) | What is observed, stuck programs, what is refused |
 | [Trace format](trace-format.md) | The `.concurim` zip, for anyone building on the file |
 | [Security](../SECURITY.md) | Local viewer, no telemetry, what a trace can contain |

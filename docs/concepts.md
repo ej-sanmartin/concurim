@@ -23,3 +23,15 @@ so they are not drawn as a cycle.
 Anything the chosen observability level cannot see is listed as not
 observed. It is not filled in. The full list is in
 [limitations](limitations.md).
+
+## What you can trust
+
+- Queue contents change only on recorded events, in true mutation order.
+- Queued and unfinished are different numbers. A dequeued item leaves
+  the queue and stays unfinished until `task_done()`.
+- `task_done()` does not say which item finished. Concurim attributes it
+  only when you pass `object_id=`. Otherwise the pairing is labeled
+  inferred.
+- A truncated recording, an object that was not instrumented, and
+  anything unobservable (CPU scheduling, the GIL) is stated in the trace
+  and in the UI.

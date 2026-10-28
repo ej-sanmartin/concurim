@@ -104,6 +104,7 @@ code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em;
   background: none; border: 0; padding: 0; color: var(--accent); cursor: pointer;
   text-align: left; font: inherit; white-space: normal;
 }
+a.link { text-decoration: none; }
 .link:hover { text-decoration: underline; }
 .lineage ul { list-style: none; margin: 0; padding: 0; }
 .lineage li { padding: 3px 0; border-left: 2px solid transparent; }

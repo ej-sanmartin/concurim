@@ -22,7 +22,14 @@ const SAMPLES = [
 
 test("home lists the bundled examples", async ({ page }) => {
   await goHome(page);
+  await expect(page.getByTestId("sample-producer-consumer")).toBeVisible();
+  await expect(page.getByTestId("sample-barrier")).toBeHidden();
+  for (const id of ["locks", "pools", "asyncio"]) {
+    await page.getByTestId(`group-${id}`).locator("summary").click();
+  }
   for (const id of SAMPLES) await expect(page.getByTestId(`sample-${id}`)).toBeVisible();
+  await expect(page.getByTestId("repo-link")).toHaveAttribute(
+    "href", "https://github.com/ej-sanmartin/concurim");
   await expect(page.getByText("Planned, not yet supported")).toHaveCount(0);
   await expect(page.getByTestId("dropzone")).toContainText("watch its concurrency unfold");
 });

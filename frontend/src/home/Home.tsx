@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { openSample, toBase64, uploadTrace, uploadWorkspace } from "../api/client";
 import { collectDrop, collectInput, type PickedFile } from "../api/readDrop";
 import type { SampleInfo, SessionInfo, WorkspaceInfo } from "../api/types";
+import { RepoLink } from "../components/RepoLink";
 import { Gallery } from "./Gallery";
 import { RunPanel } from "./RunPanel";
 
@@ -79,6 +80,7 @@ export function Home({ session, onOpenTrace, onCompare, onBack, onToggleTheme }:
           <button className="link" onClick={onCompare} data-testid="open-compare">
             Compare two recordings
           </button>
+          <RepoLink />
           <button className="link" onClick={onToggleTheme} aria-label="Toggle theme">◐</button>
         </div>
       </header>

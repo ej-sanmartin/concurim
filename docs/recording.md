@@ -60,3 +60,33 @@ with record("trace.concurim", auto="sync", include_source=True):
 classes are worth it when you want item identity, a work span, or
 lineage (`derived_from`). Outside a recording they behave like the
 standard objects. For a plain program, `--auto` is enough.
+
+```python
+import queue
+from concurim import TracedQueue, TracedThread, work
+
+jobs = TracedQueue(maxsize=3, name="Jobs")
+
+def worker():
+    while True:
+        try:
+            item = jobs.get_with_id()
+        except queue.ShutDown:
+            return
+        with work("process", object_id=item.object_id):
+            handle(item.value)
+        jobs.task_done()
+```
+
+## What each level shows
+
+| Level | You see |
+| --- | --- |
+| `none` | Only what the program builds with `Traced*` |
+| `threads` | Thread start and finish. The default |
+| `queues` | Also `queue.Queue` created during the run, including item identity |
+| `sync` | Also locks, semaphores, events, conditions, barriers, and pools |
+| `asyncio` | Also tasks, and asyncio queues, locks, events, and barriers |
+
+A level never fills in what it did not record. Objects created inside
+the standard library, or before recording starts, stay plain.

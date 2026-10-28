@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CodeView } from "./components/CodeView";
+import { RepoLink } from "./components/RepoLink";
 import { Controls } from "./components/Controls";
 import type { ExportCaps } from "./api/types";
 import { EventDetail } from "./components/EventDetail";
@@ -141,6 +142,7 @@ export function Viewer({
           ))}
         </div>
         <div className="meta">
+          <RepoLink />
           {exportCaps && (
             <button className="export-btn" data-testid="open-export"
               onClick={() => setExporting(true)}

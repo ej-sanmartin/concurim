@@ -5,6 +5,9 @@
 First vertical slice, then the GUI-first milestone, then locks, pools and
 asyncio.
 
+- The home screen groups examples into short lists. The home screen
+  and the player link to the GitHub repository. The README leads with
+  the commands.
 - A short guide in `docs/`: getting started, concepts, recording,
   reading a run, and which example to open.
 - Barriers (`threading` and `asyncio`): who has arrived, the release

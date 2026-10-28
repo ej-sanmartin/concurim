@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { compareReplay, type Slot, uploadCompare } from "../api/client";
 import type { SessionInfo } from "../api/types";
+import { RepoLink } from "../components/RepoLink";
 import { describeDifferences, type RunSummary, summarize } from "../models/compare";
 import { Lanes } from "./Lanes";
 
@@ -64,6 +65,7 @@ export function Compare({ session, onHome, onToggleTheme }: Props) {
         <div className="brand"><b>Concurim</b><span>Compare two recordings</span></div>
         <div className="meta">
           <button className="link" onClick={onHome}>← Home</button>
+          <RepoLink />
           <button className="link" onClick={onToggleTheme} aria-label="Toggle theme">◐</button>
         </div>
       </header>

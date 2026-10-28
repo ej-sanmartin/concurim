@@ -245,6 +245,10 @@ class TracedPool(_BasePool):
         if rec is None or self._cz_closed or self._cz_sink is None:
             return
         self._cz_closed = True
+        if not graceful:
+            # Reports may still be in the pipe; tasks that finished are not
+            # dropped (Windows reads them noticeably later).
+            self._cz_sink.sync()
         dropped = not graceful and bool(self._cz_sink.pending)
         rec.emit(
             E.EXECUTOR_SHUTDOWN,

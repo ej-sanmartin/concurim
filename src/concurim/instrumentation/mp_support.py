@@ -214,6 +214,8 @@ def child_call(
 
 # -- parent side --------------------------------------------------------------
 
+_SYNC = "sync"  # queue marker: not a report tuple
+
 
 class Sink:
     """Parent-side receiver of worker reports; subclasses make the events.
@@ -229,6 +231,7 @@ class Sink:
         self.actors: list[str] = []
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._closed = False
+        self._synced = threading.Event()
 
     def start(self) -> None:
         """Begin turning reports into events."""
@@ -263,6 +266,21 @@ class Sink:
         """Turn one report into events."""
         raise NotImplementedError
 
+    def sync(self, timeout: float = 2.0) -> None:
+        """Wait until every report already sent has been handled.
+
+        Args:
+            timeout: Seconds to wait at most; the reader may be slow.
+        """
+        if self._closed or not self._thread.is_alive():
+            return
+        self._synced.clear()
+        self.queue.put(_SYNC)
+        self._synced.wait(timeout)
+
     def _run(self) -> None:
         while (item := self.queue.get()) is not None:
-            self.handle(item)
+            if item == _SYNC:
+                self._synced.set()
+            else:
+                self.handle(item)

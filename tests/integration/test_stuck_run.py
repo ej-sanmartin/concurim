@@ -8,6 +8,8 @@ import textwrap
 import time
 from pathlib import Path
 
+import pytest
+
 from concurim.recorder.serialization import load_trace
 from concurim.replay.engine import build_replay
 
@@ -48,6 +50,10 @@ DEADLOCK = textwrap.dedent(
 )
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Windows cannot deliver SIGTERM: send_signal terminates the process",
+)
 def test_a_deadlock_is_saved_when_the_process_is_signalled(tmp_path: Path):
     script = tmp_path / "dead.py"
     script.write_text(DEADLOCK)

@@ -34,9 +34,6 @@ cd concurim
 uv sync
 ```
 
-`git clone` copies the repo, `cd` enters it, and `uv sync` installs this
-project and its dependencies so the commands below run with `uv run`.
-
 ```bash
 uv run concurim
 ```

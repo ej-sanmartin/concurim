@@ -70,7 +70,10 @@ export function Home({ session, onOpenTrace, onCompare, onBack, onToggleTheme }:
   return (
     <div className="home" data-testid="home-screen">
       <header className="top">
-        <div className="brand"><b>Concurim</b><span>See how Python runs together</span></div>
+        <div className="brand">
+          <img className="brand-logo" src="logo.png" alt="" width={26} height={26} />
+          <b>Concurim</b><span>See how Python runs together</span>
+        </div>
         <div className="meta">
           {onBack && (
             <button className="link" onClick={onBack} data-testid="back-to-recording">

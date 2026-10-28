@@ -5,6 +5,7 @@
 First vertical slice, then the GUI-first milestone, then locks, pools and
 asyncio.
 
+- The home screen shows the logo beside the name.
 - The home screen groups examples into short lists. The home screen
   and the player link to the GitHub repository. The README leads with
   the commands.

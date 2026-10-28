@@ -1,6 +1,9 @@
 /* ---- home screen ---- */
 .home { min-height: 100%; }
 .home .top { height: 48px; }
+.home .brand { display: flex; align-items: center; }
+.home .brand-logo { display: block; margin-right: 8px; }
+html[data-theme="dark"] .home .brand-logo { filter: invert(1); }
 .home main { max-width: 1080px; margin: 0 auto; padding: 24px 20px 60px; display: grid; gap: 22px; }
 .home .meta { display: flex; gap: 16px; }
 .small { font-size: 12px; }

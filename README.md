@@ -1,5 +1,10 @@
 <p align="center">
   <img src="https://raw.githubusercontent.com/ej-sanmartin/concurim/main/docs/images/logo.png" alt="Concurim" width="200"/>
+  <br>
+  <a href="https://github.com/ej-sanmartin/concurim/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ej-sanmartin/concurim/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/ej-sanmartin/concurim/blob/main/CHANGELOG.md"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue"></a>
+  <a href="https://github.com/ej-sanmartin/concurim/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue"></a>
+  <img alt="Python 3.13+" src="https://img.shields.io/badge/python-3.13%2B-blue">
 </p>
 
 # Concurim

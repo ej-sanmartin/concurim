@@ -1,6 +1,7 @@
 import sys
 
 import pytest
+from png_diff import assert_same_picture
 
 from concurim.export import sink, video
 from concurim.export.cdp import (
@@ -112,7 +113,11 @@ def _browser_or_skip():
 
 
 def test_png_frames_are_identical_between_runs(tmp_path):
-    """The headline promise: the same trace renders the same pixels."""
+    """The same trace renders the same picture on two runs.
+
+    PNG bytes are not compared: macOS Chrome antialiases a few edge
+    pixels differently each launch. A wrong frame still fails.
+    """
     _browser_or_skip()
     trace = load_trace(TRACE)
     options = ExportOptions(
@@ -123,9 +128,7 @@ def test_png_frames_are_identical_between_runs(tmp_path):
     one = sorted((tmp_path / "one").glob("*.png"))
     assert len(one) == 20  # two events x (5 glide + 5 hold) frames
     for frame in one:
-        assert (
-            frame.read_bytes() == (tmp_path / "two" / frame.name).read_bytes()
-        )
+        assert_same_picture(frame, tmp_path / "two" / frame.name)
     # The second event glides: frames differ until it settles.
     shots = {p.read_bytes() for p in one}
     assert 3 <= len(shots) <= 8

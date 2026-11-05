@@ -119,6 +119,8 @@ class Browser:
             "--force-device-scale-factor=1",
             "--font-render-hinting=none",
             "--disable-background-timer-throttling",
+            "--disable-renderer-backgrounding",
+            "--disable-backgrounding-occluded-windows",
             "--mute-audio",
             f"--window-size={width},{height}",
             "about:blank",

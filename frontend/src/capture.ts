@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { advanceClock } from "./captureClock";
+import { advanceClock, nextPaint } from "./captureClock";
 
 /** Views a video can show (same names as the viewer's modes). */
 export type CaptureView = "animation" | "code" | "timeline" | "resources";
@@ -23,10 +23,10 @@ export interface CaptureBridge {
   total: number;
   /** Show an event (no time passes: its tweens are at their start). */
   seek: (index: number) => Promise<void>;
-  /** Let ``ms`` of animation time pass, exactly. */
-  advance: (ms: number) => void;
-  /** Run every animation to its end. */
-  settle: () => void;
+  /** Let ``ms`` of animation time pass, exactly, then paint. */
+  advance: (ms: number) => Promise<void>;
+  /** Run every animation to its end, then paint. */
+  settle: () => Promise<void>;
 }
 
 declare global {
@@ -34,7 +34,6 @@ declare global {
 }
 
 const VIEWS: CaptureView[] = ["animation", "code", "timeline", "resources"];
-const READY_MS = 800;
 const MAX_POLLS = 200;
 const SETTLE_MS = 2000;
 const STEP_MS = 1000 / 60;
@@ -64,8 +63,16 @@ const elapsed = new WeakMap<Animation, number>();
 /** Wait a real moment (rendering is asynchronous; time is not involved). */
 const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** Advance the fake clock and pin every CSS/Web animation to its new time. */
-function advance(ms: number): void {
+/** Fonts and images, so two runs rasterize the same assets. */
+async function waitForAssets(): Promise<void> {
+  await document.fonts.ready;
+  await Promise.all(
+    [...document.images].map((img) => img.decode().catch(() => undefined)),
+  );
+}
+
+/** Move the fake clock and pin every CSS/Web animation to that time. */
+function scrub(ms: number): void {
   advanceClock(ms);
   for (const animation of document.getAnimations()) {
     const t = (elapsed.get(animation) ?? 0) + ms;
@@ -75,18 +82,25 @@ function advance(ms: number): void {
   }
 }
 
-/** Run everything to its end, then drop finished animations. */
-function settle(): void {
-  for (let t = 0; t < SETTLE_MS; t += STEP_MS) advance(STEP_MS);
+/** Let ``ms`` of animation time pass, then paint that frame. */
+async function advance(ms: number): Promise<void> {
+  scrub(ms);
+  await nextPaint();
+}
+
+/** Run everything to its end, then paint the settled frame. */
+async function settle(): Promise<void> {
+  for (let t = 0; t < SETTLE_MS; t += STEP_MS) scrub(STEP_MS);
   for (const animation of document.getAnimations()) {
     try { animation.finish(); } catch { /* infinite: not used in capture */ }
   }
+  await nextPaint();
 }
 
 /**
  * Expose ``window.__concurim`` while capturing. ``seek`` resolves only once
  * the page reports the requested event as rendered. ``ready`` turns true
- * after the first fit of the graph has settled.
+ * once fonts, images and a paint have landed, so a shot is not early.
  */
 export function useCaptureBridge(
   on: boolean, total: number, seek: (i: number) => void,
@@ -103,17 +117,23 @@ export function useCaptureBridge(
           const app = document.querySelector<HTMLElement>(".app");
           if (app?.dataset.index === String(i)) break;
         }
-        await pause(40);
-        document.body.getBoundingClientRect(); // start CSS transitions now
+        await waitForAssets();
+        document.body.getBoundingClientRect(); // flush layout before motion
         advanceClock(0); // let Motion start its tweens at t = 0
+        await nextPaint();
       },
       advance,
       settle,
     };
     window.__concurim = bridge;
-    const id = window.setTimeout(() => { bridge.ready = true; }, READY_MS);
+    let live = true;
+    void (async () => {
+      await waitForAssets();
+      await nextPaint();
+      if (live) bridge.ready = true;
+    })();
     return () => {
-      window.clearTimeout(id);
+      live = false;
       delete window.__concurim;
     };
   }, [on, total, seek]);

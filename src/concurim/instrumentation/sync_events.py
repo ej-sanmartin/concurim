@@ -21,7 +21,7 @@ import threading
 from typing import Any
 
 from concurim.instrumentation.queue_support import _Op
-from concurim.instrumentation.sync import TracedRLock
+from concurim.instrumentation.rlock import TracedRLock
 from concurim.recorder.collector import Recorder, mark_internal
 from concurim.recorder.events import EventType as E
 from concurim.recorder.lifecycle import active_recorder

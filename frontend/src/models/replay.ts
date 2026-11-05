@@ -84,9 +84,18 @@ export interface QueueState {
 
 export type SyncKind =
   | "lock" | "rlock" | "semaphore" | "event" | "condition" | "barrier"
-  | "taskgroup";
+  | "taskgroup" | "cell";
 
-/** A lock, semaphore, event, condition, barrier or task group. */
+/** One read or write of a shared value, and the locks held at that moment. */
+export interface Access {
+  actor: string;
+  op: "read" | "write";
+  t: number;
+  /** Ids of the locks the actor held. */
+  locks: string[];
+}
+
+/** A lock, semaphore, event, condition, barrier, task group or shared value. */
 export interface SyncState {
   id: string;
   name: string;
@@ -109,6 +118,19 @@ export interface SyncState {
   members: string[];
   /** Task group: member tasks not finished. */
   running: number;
+  /** Shared value: its current value, when previews are on. */
+  preview: string | null;
+  /** Shared value: the latest accesses, oldest first. */
+  accesses: Access[];
+}
+
+/** A fail state read off the run (see ``concurim.replay.hazards``). */
+export interface Hazard {
+  kind: string;
+  at: number;
+  text: string;
+  /** True when it rests on history or a pattern, not a block that happened. */
+  inferred: boolean;
 }
 
 export type ObjectPhase =
@@ -196,6 +218,8 @@ export interface Replay {
   occupancy: Record<string, [number, number, number][]>;
   summary: { event_count: number; duration_ns: number; by_type: Record<string, number> };
   warnings: string[];
+  /** Fail states found in the run; absent on older replays. */
+  hazards?: Hazard[];
   /** Lock wait-for graph. Absent on replays built before this field existed. */
   wait_for?: {
     waiting: { actor: string; resource: string; holders: string[] }[];

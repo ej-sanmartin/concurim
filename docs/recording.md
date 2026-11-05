@@ -86,7 +86,7 @@ def worker():
 | `none` | Only what the program builds with `Traced*` |
 | `threads` | Thread start and finish. The default |
 | `queues` | Also `queue.Queue` created during the run, including item identity |
-| `sync` | Also locks, semaphores, events, conditions, barriers, and pools |
+| `sync` | Also locks, semaphores, events, conditions, barriers, pools, and `multiprocessing` locks and values |
 | `asyncio` | Also tasks, and asyncio queues, locks, events, and barriers |
 
 A level never fills in what it did not record. Objects created inside

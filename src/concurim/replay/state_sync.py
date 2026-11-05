@@ -26,7 +26,12 @@ def _blocked(red: Any, ev, app, th):
     s.waiters.append({"thread": th.id, "op": ev.operation_id})
     th.status, th.basis = "waiting", "observed"
     th.waiting_on = {"resource": s.id, "op": "acquire"}
-    app.facts.update(holders=list(s.holders), value=s.value)
+    app.facts.update(
+        holders=list(s.holders),
+        value=s.value,
+        kind=s.kind,
+        self_held=th.id in s.holders,
+    )
 
 
 def _end_wait(s, th, ev) -> bool:
@@ -41,11 +46,17 @@ def _completed(red: Any, ev, app, th):
     s = red.sync(ev, app)
     app.facts["was_blocked"] = _end_wait(s, th, ev)
     app.facts["held_by_others"] = list(s.holders)
+    app.facts["reentered"] = s.kind == "rlock" and th.id in s.holders
     # A Condition wake-up re-acquires every level the wait released.
     levels = max(1, int(ev.metadata.get("count", 1) or 1))
     s.holders.extend([th.id] * levels)
     s.value = max(0, s.value - levels)
-    app.facts.update(acquired=th.id, value=s.value)
+    app.facts.update(
+        acquired=th.id,
+        value=s.value,
+        kind=s.kind,
+        depth=s.holders.count(th.id),
+    )
 
 
 def _failed(red: Any, ev, app, th):
@@ -71,6 +82,18 @@ def _released(red: Any, ev, app, th):
         count=count,
         value=s.value,
         remaining=len(s.holders),
+        kind=s.kind,
+        depth=s.holders.count(th.id),
+    )
+
+
+def _release_failed(red: Any, ev, app, th):
+    """A release the lock refused: nothing changes, the reason is the fact."""
+    s = red.sync(ev, app)
+    app.facts.update(
+        reason=ev.metadata.get("reason"),
+        kind=s.kind,
+        holders=list(s.holders),
     )
 
 
@@ -86,3 +109,4 @@ for _kind in ("lock", "semaphore"):
     SYNC_HANDLERS[f"{_kind}.acquire.completed"] = _completed
     SYNC_HANDLERS[f"{_kind}.acquire.failed"] = _failed
     SYNC_HANDLERS[f"{_kind}.released"] = _released
+SYNC_HANDLERS["lock.release.failed"] = _release_failed

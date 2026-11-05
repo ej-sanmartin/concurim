@@ -57,7 +57,8 @@ const add = (m: Touches, key: string, value: string) => {
 const touchesSync = (type: string) =>
   type.includes(".acquire.") || type.includes(".wait.") ||
   type === "event.set" || type === "event.cleared" ||
-  type === "condition.notify" || type.startsWith("taskgroup.");
+  type === "condition.notify" || type.startsWith("taskgroup.") ||
+  type.startsWith("cell.");
 
 /** Conditions sit directly left of their lock, so the link is short. */
 function orderSyncs(replay: Replay): string[] {

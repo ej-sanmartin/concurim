@@ -1,7 +1,8 @@
 """Instrumented ``threading`` locks and semaphores.
 
-``TracedLock`` and ``TracedRLock`` wrap the real primitives (the C lock types
-cannot be subclassed); ``TracedSemaphore`` subclasses ``threading.Semaphore``.
+``TracedLock`` wraps the real primitive (the C lock types cannot be
+subclassed), as does ``TracedRLock`` in ``rlock``; ``TracedSemaphore``
+subclasses ``threading.Semaphore``.
 Outside a ``concurim.record()`` block they behave like the originals.
 
 Ordering: ``released`` is emitted just *before* the real release, so the next
@@ -26,7 +27,6 @@ mark_internal(__file__)
 # Bound once: ``threading.Semaphore`` may be replaced while auto-instrumenting.
 _BaseSemaphore = threading.Semaphore
 _BaseBoundedSemaphore = threading.BoundedSemaphore
-_new_rlock = threading.RLock
 
 
 def _invalid(blocking: bool, timeout: float | None) -> bool:
@@ -100,6 +100,15 @@ class _Held:
             metadata=meta,
         )
 
+    def _cz_release_failed(self, rec: Recorder, reason: str) -> None:
+        """A release the real lock is about to refuse with ``RuntimeError``."""
+        rec.emit(
+            f"{self._cz_kind}.release.failed",
+            resource_id=self._cz_rid(rec),
+            source=rec.capture_source(),
+            metadata={"reason": reason},
+        )
+
 
 class TracedLock(_Held):
     """Drop-in ``threading.Lock`` that records acquire and release.
@@ -134,10 +143,13 @@ class TracedLock(_Held):
         )
 
     def release(self) -> None:
-        """``Lock.release``."""
+        """``Lock.release``; releasing an unlocked lock is recorded."""
         rec = active_recorder()
-        if rec is not None and self._lock.locked():
-            self._cz_released(rec)
+        if rec is not None:
+            if self._lock.locked():
+                self._cz_released(rec)
+            else:
+                self._cz_release_failed(rec, "not_locked")
         self._lock.release()
 
     def locked(self) -> bool:
@@ -148,88 +160,6 @@ class TracedLock(_Held):
         # ``Condition`` asks this on every wait/notify; its default probes
         # with a real acquire, which would show up as phantom events.
         return self._lock.locked()
-
-    def __enter__(self) -> bool:
-        return self.acquire()
-
-    def __exit__(self, *_: object) -> None:
-        self.release()
-
-
-class TracedRLock(_Held):
-    """Drop-in ``threading.RLock`` that records every acquire and release.
-
-    Args:
-        name: Display name in the viewer.
-    """
-
-    _cz_kind = "lock"
-
-    def __init__(self, *, name: str | None = None) -> None:
-        self._lock = _new_rlock()
-        self._cz_name = name
-        self._cz_meta = {"kind": "rlock", "value": 1}
-        rec = active_recorder()
-        if rec is not None:
-            self._cz_rid(rec)
-
-    def acquire(self, blocking: bool = True, timeout: float = -1) -> bool:
-        """``RLock.acquire``; each (re-)acquisition is one event."""
-        rec = active_recorder()
-        if rec is None or _invalid(blocking, timeout):
-            return self._lock.acquire(blocking, timeout)
-        op = _Op(rec, self._cz_rid(rec), rec.capture_source())
-        return traced_acquire(
-            op,
-            "lock",
-            blocking,
-            timeout,
-            lambda: self._lock.acquire(False),
-            lambda: self._lock.acquire(True, timeout),
-        )
-
-    def release(self) -> None:
-        """``RLock.release``."""
-        rec = active_recorder()
-        if rec is not None and self._is_owned():
-            self._cz_released(rec)
-        self._lock.release()
-
-    def _is_owned(self) -> bool:
-        return self._lock._is_owned()  # ty: ignore[unresolved-attribute]
-
-    def _release_save(self) -> Any:
-        """Release every level at once (``Condition.wait`` uses this)."""
-        rec = active_recorder()
-        if rec is not None and self._is_owned():
-            levels = getattr(self._lock, "_recursion_count", lambda: 1)()
-            self._cz_released(rec, count=levels)
-        return self._lock._release_save()  # ty: ignore[unresolved-attribute]
-
-    def _acquire_restore(self, state: Any) -> None:
-        """Re-acquire every released level (``Condition.wait`` wake-up)."""
-        rec = active_recorder()
-        if rec is None:
-            self._lock._acquire_restore(state)  # ty: ignore[unresolved-attribute]
-            return
-        levels = state[0]
-        op = _Op(rec, self._cz_rid(rec), rec.capture_source())
-        op.emit("lock.acquire.started", blocking=True, timeout=None)
-        if not self._lock.acquire(False):
-            op.emit("lock.acquire.blocked")
-            self._lock.acquire()
-        for _ in range(levels - 1):
-            self._lock.acquire()
-        op.emit("lock.acquire.completed", count=levels)
-
-    def locked(self) -> bool:
-        """Whether any thread holds it (``Condition`` needs this on 3.14)."""
-        if self._is_owned():
-            return True
-        if self._lock.acquire(False):
-            self._lock.release()
-            return False
-        return True
 
     def __enter__(self) -> bool:
         return self.acquire()

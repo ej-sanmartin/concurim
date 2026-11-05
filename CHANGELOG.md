@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+- `RLock`: the replay says who owns it and how deep, names a re-entry, and
+  shows a release by a non-owner as refused.
+- Fail states read off a run: a lock whose holder ended, two locks taken in
+  opposite order, an asyncio task blocked on a thread lock, a `fork` that
+  copied a held lock, a wait that no remaining thread can end, and a
+  `join()` that cannot return. Each says whether it is inferred.
+- Shared values: `TracedCell`, `traced_value` and (at `sync`)
+  `multiprocessing.Value` record every read and write, the value when
+  previews are on, and the locks held. A lockset check flags a value used
+  with no lock in common, labelled inferred.
+- `multiprocessing` `Lock`, `RLock`, `Semaphore` and `BoundedSemaphore`
+  are recorded in every process that uses them.
+- The README shows a looping animation of the components.
+
 ## 1.0.0
 
 First vertical slice, then the GUI-first milestone, then locks, pools and

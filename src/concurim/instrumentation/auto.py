@@ -54,7 +54,11 @@ from concurim.instrumentation.auto_events import (
     AutoCondition,
     AutoEvent,
 )
-from concurim.instrumentation.auto_mp import AutoPool, AutoProcess
+from concurim.instrumentation.auto_mp import (
+    AutoPool,
+    AutoProcess,
+    mp_primitive_patches,
+)
 from concurim.instrumentation.auto_support import (
     creation_name,
     in_stdlib,
@@ -65,10 +69,10 @@ from concurim.instrumentation.executors import TracedThreadPoolExecutor
 from concurim.instrumentation.futures_support import traced_as_completed
 from concurim.instrumentation.process_pool import TracedProcessPoolExecutor
 from concurim.instrumentation.queues import TracedQueue
+from concurim.instrumentation.rlock import TracedRLock
 from concurim.instrumentation.sync import (
     TracedBoundedSemaphore,
     TracedLock,
-    TracedRLock,
     TracedSemaphore,
 )
 from concurim.instrumentation.threads import observe_thread
@@ -204,6 +208,7 @@ def _patches(level: str) -> list[tuple[Any, str, Any]]:
             (concurrent.futures, "ProcessPoolExecutor", AutoProcessPool),
             (concurrent.futures, "as_completed", traced_as_completed),
             (multiprocessing, "Process", AutoProcess),
+            *mp_primitive_patches(),
             (multiprocessing, "Pool", AutoPool),
             (
                 concurrent.futures.process,

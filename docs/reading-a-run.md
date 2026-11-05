@@ -21,6 +21,15 @@ The explanation under the picture is one sentence for the current event.
 If it depended on a guess, the card says inferred. Dashed borders are
 inferred. Solid borders were observed.
 
+A shared value (`TracedCell`, `traced_value`) is drawn like a lock, with a
+dashed border. Its inspector lists the latest reads and writes and the
+locks held at each. When the run shows a fail state, the sentence is added
+to the event it appeared at and listed with the other warnings: a lock whose
+holder ended, two locks taken in opposite order, a coroutine blocked on a
+thread lock, a lock copied by `fork`, a wait nobody is left to end, and a
+value used with no lock in common. Those marked inferred are patterns, not
+blocks that happened.
+
 | Key | Action |
 | --- | --- |
 | Space | Play or pause |

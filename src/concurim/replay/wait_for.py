@@ -13,7 +13,7 @@ from typing import Any
 _KINDS = ("lock", "rlock", "semaphore")
 
 
-def _labels(red: Any) -> dict[str, str]:
+def actor_labels(red: Any) -> dict[str, str]:
     """Display name per actor. Duplicate names keep the id."""
     counts: dict[str, int] = {}
     for thread in red.threads.values():
@@ -101,7 +101,7 @@ def _phrase(cycles: list[list[str]]) -> str:
 
 def waiting(red: Any) -> list[dict[str, Any]]:
     """Actors blocked on a lock or semaphore, and who holds it."""
-    labels = _labels(red)
+    labels = actor_labels(red)
     rows: list[dict[str, Any]] = []
     for sync in red.syncs.values():
         if sync.kind not in _KINDS:
@@ -137,7 +137,7 @@ class WaitTracker:
         Returns:
             A sentence when a cycle newly appears, else ``None``.
         """
-        labels = _labels(red)
+        labels = actor_labels(red)
         cycles = _cycles(_edges(red))
         sig = tuple(tuple(c) for c in cycles)
         if sig == self._sig:

@@ -19,15 +19,23 @@ from concurim.instrumentation.barriers import (
     TracedAsyncBarrier,
     TracedBarrier,
 )
+from concurim.instrumentation.cells import TracedCell
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
 from concurim.instrumentation.mp_pool import TracedPool
 from concurim.instrumentation.mp_process import TracedProcess
+from concurim.instrumentation.mp_sync import (
+    TracedMPBoundedSemaphore,
+    TracedMPLock,
+    TracedMPRLock,
+    TracedMPSemaphore,
+)
+from concurim.instrumentation.mp_value import traced_value
 from concurim.instrumentation.process_pool import TracedProcessPoolExecutor
 from concurim.instrumentation.queues import QueueItem, TracedQueue
+from concurim.instrumentation.rlock import TracedRLock
 from concurim.instrumentation.sync import (
     TracedBoundedSemaphore,
     TracedLock,
-    TracedRLock,
     TracedSemaphore,
 )
 from concurim.instrumentation.sync_events import (
@@ -52,9 +60,14 @@ __all__ = [
     "TracedAsyncSemaphore",
     "TracedBarrier",
     "TracedBoundedSemaphore",
+    "TracedCell",
     "TracedCondition",
     "TracedEvent",
     "TracedLock",
+    "TracedMPBoundedSemaphore",
+    "TracedMPLock",
+    "TracedMPRLock",
+    "TracedMPSemaphore",
     "TracedQueue",
     "TracedRLock",
     "TracedSemaphore",
@@ -67,6 +80,7 @@ __all__ = [
     "active_recorder",
     "build_replay",
     "load_trace",
+    "traced_value",
     "record",
     "work",
 ]

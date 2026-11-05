@@ -53,8 +53,8 @@
   the code view. Thread status "running (not blocked)" is therefore
   **inferred** and drawn with a dashed border.
 - Which item `task_done()` refers to, unless `object_id=` is passed.
-- `multiprocessing.Barrier` and `multiprocessing.Manager` objects (a later
-  milestone). `threading.Barrier` and `asyncio.Barrier` are observed.
+- `multiprocessing.Event`, `Barrier`, `Array` and `Manager` objects.
+  `threading.Barrier` and `asyncio.Barrier` are observed.
 - `LifoQueue`/`PriorityQueue` (items are wrapped in an envelope, which would
   break priority comparison); `SimpleQueue` (no hooks).
 
@@ -85,7 +85,37 @@
   untraced class; use `multiprocessing.Pool(...)` or import after recording
   starts.
 - Timing and clocks follow the same rules as `ProcessPoolExecutor`.
+- `multiprocessing` `Lock`, `RLock`, `Semaphore`, `BoundedSemaphore` and
+  `Value` made by your code are recorded from `sync` on, in every child that
+  receives them (`spawn`, `forkserver` and `fork`). Each child reports to the
+  parent, which stamps the event when it arrives, so the order of events
+  from different processes is approximate. A lock a process holds when it is
+  killed is never reported as released.
+- `fork` copies locks other threads hold. Concurim says so when a `Process`
+  is started that way while a lock is held; `Pool` is not checked.
 
+## Fail states and shared values
+
+- Concurim reads these off the one recorded run. It never searches other
+  schedules, so "no hazard" does not mean "no bug".
+- Each is marked **inferred** when it rests on history or a pattern rather
+  than on a block that happened: opposite lock order (can deadlock, did
+  not), a wait whose every past signaller has ended (a thread that never
+  touched it could still signal), and a shared value touched without a
+  common lock. Waits with a timeout are never reported as stuck.
+- A wait left open is judged on the *final* state. A consumer idle until
+  `shutdown()` is normal, and is not reported if the run ends cleanly.
+- Shared values (`concurim.TracedCell`, `concurim.traced_value`, and
+  `multiprocessing.Value` at `sync`) record each read and write and the
+  locks the actor held. Plain Python variables are not traced.
+- The race check is a lockset check (as in the Eraser paper). It cannot see
+  ordering that comes from a queue hand-off or an event, so it can flag a
+  value that is safe in practice. A read after every other user of the value
+  has ended is not counted. A value's own lock covers one access, not a
+  read-then-write: `value += 1` is two accesses.
+- The current value is shown only when previews are on.
+- `RLock`: re-entry shows its depth. A release by a thread that does not
+  own it is shown as refused, then Python raises as usual.
 ## Run comparison and the GIL
 
 - **Compare** shows two recordings side by side with facts only: Python

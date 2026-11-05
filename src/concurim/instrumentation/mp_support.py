@@ -279,8 +279,12 @@ class Sink:
         self._synced.wait(timeout)
 
     def _run(self) -> None:
+        from concurim.instrumentation import mp_events
+
         while (item := self.queue.get()) is not None:
             if item == _SYNC:
                 self._synced.set()
+            elif item[0] == mp_events.KIND:  # a lock or value event
+                mp_events.record_remote(self, item)
             else:
                 self.handle(item)

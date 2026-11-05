@@ -50,11 +50,11 @@ class QueueState:
 
 @dataclass
 class SyncState:
-    """A lock, semaphore, event, condition, barrier or task group."""
+    """A lock, semaphore, event, condition, barrier, task group or cell."""
 
     id: str
     name: str
-    # lock | rlock | semaphore | event | condition | barrier | taskgroup
+    # lock | rlock | semaphore | event | condition | barrier | taskgroup | cell
     kind: str = "lock"
     capacity: int = 1  # permits at creation
     value: int = 1  # permits available now (semaphores)
@@ -66,6 +66,9 @@ class SyncState:
     broken: bool = False  # barrier: further waits fail until reset
     members: list[str] = field(default_factory=list)  # taskgroup: tasks
     running: int = 0  # taskgroup: member tasks not finished
+    preview: str | None = None  # cell: current value, when previews are on
+    # cell: the latest accesses, oldest first (see ``state_cells``)
+    accesses: list[dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass

@@ -75,11 +75,23 @@ Semantics worth knowing:
 `lock.released`, and the same family under `semaphore.` (including
 `BoundedSemaphore`, and asyncio's `Lock`/`Semaphore`). `created` carries
 `metadata.kind` (`lock`, `rlock` or `semaphore`), `value` and `name`;
-`released` carries `count` for semaphores.
+`released` carries `count` for semaphores. `lock.release.failed` records a
+release the lock refused, with `reason` (`not_locked`, `not_owner` or
+`not_acquired`); it precedes the exception the program sees. A
+`multiprocessing` lock adds its events from each child process, as for
+process pools.
 
 - `blocked` means the lock was unavailable at the first try.
 - `released` is emitted just *before* the real release, so the next holder's
   `acquire.completed` always has a larger `sequence`.
+
+### Shared value events
+
+`cell.created` (`name`, `value_type`, `preview` when previews are on),
+`cell.read` and `cell.write` (the same, plus the new `preview`). The replay
+state keeps the latest accesses with the locks the actor held, and the
+replay document has a `hazards` list: `{kind, at, text, inferred}` for
+each fail state found. The same sentences appear in `warnings`.
 
 ### Executor events
 

@@ -79,8 +79,9 @@ def coverage_for(auto: str) -> dict[str, list[str]]:
             "threading Lock, RLock, Semaphore, BoundedSemaphore, Event, "
             "Condition, Barrier, "
             "ThreadPoolExecutor and ProcessPoolExecutor (submit, and task "
-            "start/end as reported by each worker process) created by the "
-            "program's own code"
+            "start/end as reported by each worker process), and "
+            "multiprocessing Lock, RLock, Semaphore, BoundedSemaphore and "
+            "Value, created by the program's own code"
         )
         not_observed.append(
             "Locks and executors created inside libraries or the standard "

@@ -1,4 +1,4 @@
-import type { Replay } from "../models/replay";
+import type { Access, Replay } from "../models/replay";
 import type { WorldState } from "../models/states";
 import type { Selection } from "../models/selection";
 import { STATUS_LABEL } from "../animations/palette";
@@ -14,6 +14,12 @@ interface Props {
 }
 
 const MAX_ROWS = 60;
+
+/** ``write by Worker holding Lock`` / ``read by Main holding no lock``. */
+function accessText(a: Access, name: (id: string) => string): string {
+  const held = a.locks.length ? a.locks.map(name).join(" + ") : "no lock";
+  return `${a.op} by ${name(a.actor)} holding ${held}`;
+}
 
 /** Identity, current state and history for the selected entity. */
 export function Inspector({ replay, world, index, selection, onSeek }: Props) {
@@ -52,6 +58,10 @@ export function Inspector({ replay, world, index, selection, onSeek }: Props) {
       ...(info.kind === "condition"
         ? [["lock", s.lock ? name(s.lock) : "not recorded"] as [string, string],
           ["notified, not yet resumed", String(s.notified)] as [string, string]] : []),
+      ...(info.kind === "cell"
+        ? [["value", s.preview ?? "not recorded (previews are off)"] as [string, string],
+          ["recent accesses", s.accesses.map((a) => accessText(a, name)).join("; ") || "–"] as [string, string]]
+        : []),
       ...(info.kind === "taskgroup"
         ? [["tasks", `${s.running} running of ${s.members.length}`] as [string, string],
           ["members", s.members.map(name).join(", ") || "–"] as [string, string]] : []),

@@ -84,6 +84,7 @@ class TracedProcess(_BaseProcess):
             metadata={
                 "child_name": self.name,
                 "process": True,
+                "start_method": multiprocessing.get_start_method(),
                 **describe_args(tuple(self._args), dict(self._kwargs)),  # ty: ignore[unresolved-attribute]
             },
         )

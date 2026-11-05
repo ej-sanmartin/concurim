@@ -49,3 +49,31 @@ def bump(counter, items):
     with counter.get_lock():
         counter.value += 1
     items.append(1)
+
+
+def locked_bump(lock, counter):
+    """Add one to a shared value while holding an explicit lock."""
+    with lock:
+        counter.value += 1
+
+
+def bump_value(counter):
+    """Add one with no lock of our own (the value may have its own)."""
+    counter.value += 1
+
+
+def reenter(lock):
+    """Take a reentrant lock twice."""
+    with lock, lock:
+        pass
+
+
+def store(counter, number):
+    """Set a shared value."""
+    counter.value = number
+
+
+def bump_together(counter, barrier):
+    """Add one with no lock, then wait so both children overlap."""
+    counter.value += 1
+    barrier.wait()

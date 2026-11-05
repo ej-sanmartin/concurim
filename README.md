@@ -13,11 +13,10 @@
 **See how Python runs together.** Concurim records what your threads and
 asyncio tasks actually do, then replays that one run as an animation.
 
-![Concurim viewer, dark theme][viewer-dark]
+![Two producers and two consumers share a queue, replayed in a loop][viewer-animation]
 
-*A recording of [`threaded_pipeline.py`][sample-pipeline]
-(event 41 of 120): two producers and two consumers share a queue of
-capacity 3.*
+*The first 60 events of a recording of [`threaded_pipeline.py`][sample-pipeline]:
+two producers and two consumers share a queue of capacity 3.*
 
 > **Status: 1.0.** Threads, queues, locks, events, barriers, pools,
 > and asyncio are included.
@@ -112,7 +111,7 @@ previews are off unless you ask for them.
 
 MIT licensed.
 
-[viewer-dark]: https://raw.githubusercontent.com/ej-sanmartin/concurim/main/docs/images/viewer-dark.png
+[viewer-animation]: https://raw.githubusercontent.com/ej-sanmartin/concurim/main/docs/images/viewer-animation.gif
 [sample-pipeline]: https://github.com/ej-sanmartin/concurim/blob/main/src/concurim/samples/threaded_pipeline.py
 [doc-start]: https://github.com/ej-sanmartin/concurim/blob/main/docs/getting-started.md
 [doc-concepts]: https://github.com/ej-sanmartin/concurim/blob/main/docs/concepts.md

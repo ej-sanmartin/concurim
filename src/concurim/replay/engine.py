@@ -16,6 +16,7 @@ from concurim.recorder.events import Event
 from concurim.recorder.serialization import Trace
 from concurim.replay.code_view import function_ranges, split_line_samples
 from concurim.replay.explanations import explain
+from concurim.replay.hazards import PATTERN_NOTE, Hazards, hazard_warnings
 from concurim.replay.models import Applied, snapshot
 from concurim.replay.spans import track_holds, track_spans
 from concurim.replay.state import Reducer
@@ -46,6 +47,7 @@ def build_replay(trace: Trace) -> dict[str, Any]:
     holds: dict[tuple[str, str], dict[str, Any]] = {}
     last_index = max(len(events) - 1, 0)
     waits = WaitTracker()
+    hazards = Hazards()
 
     for i, ev in enumerate(events):
         before = {
@@ -57,6 +59,10 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         if note:
             explanation["text"] = f"{explanation['text']} {note}"
             explanation["inferred"].append(_CYCLE_NOTE)
+        for hazard in hazards.observe(red, ev, i):
+            explanation["text"] = f"{explanation['text']} {hazard['text']}"
+            if hazard["inferred"]:
+                explanation["inferred"].append(PATTERN_NOTE)
         frames.append(
             {
                 "i": i,
@@ -70,6 +76,13 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         _track_journeys(i, red, app, journeys)
         track_holds(i, ev, app, spans, holds)
 
+    for hazard in hazards.finish(red, last_index):
+        if frames:
+            last = frames[-1]["explanation"]
+            last["text"] = f"{last['text']} {hazard['text']}"
+            if hazard["inferred"]:
+                last["inferred"].append(PATTERN_NOTE)
+
     for span in [*open_spans.values(), *holds.values()]:
         span.pop("depth", None)
         span.update(end=last_index, outcome="open")
@@ -79,7 +92,7 @@ def build_replay(trace: Trace) -> dict[str, Any]:
     program = trace.metadata.get("program") or {}
     report = waits.report(red)
     head = wait_warnings(program, report)
-    warnings = head + list(red.warnings)
+    warnings = head + hazard_warnings(hazards.found) + list(red.warnings)
     if trace.metadata.get("truncated"):
         warnings.insert(
             len(head),
@@ -105,6 +118,7 @@ def build_replay(trace: Trace) -> dict[str, Any]:
         "summary": _summary(events),
         "warnings": warnings,
         "wait_for": report,
+        "hazards": hazards.found,
     }
 
 

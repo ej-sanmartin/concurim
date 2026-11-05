@@ -230,7 +230,7 @@ class _AsyncHeld:
     def _cz_setup(self, kind: str, name: str | None, **meta: Any) -> None:
         self._cz_kind = kind
         self._cz_name = name
-        self._cz_meta = {"kind": kind, **meta}
+        self._cz_meta = {"kind": kind, "asyncio": True, **meta}
         rec = active_recorder()
         if rec is not None:
             self._cz_rid(rec)

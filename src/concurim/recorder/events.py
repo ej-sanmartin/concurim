@@ -56,6 +56,7 @@ class EventType:
     LOCK_ACQUIRE_COMPLETED = "lock.acquire.completed"
     LOCK_ACQUIRE_FAILED = "lock.acquire.failed"
     LOCK_RELEASED = "lock.released"
+    LOCK_RELEASE_FAILED = "lock.release.failed"
     SEMAPHORE_CREATED = "semaphore.created"
     SEMAPHORE_ACQUIRE_STARTED = "semaphore.acquire.started"
     SEMAPHORE_ACQUIRE_BLOCKED = "semaphore.acquire.blocked"
@@ -95,6 +96,10 @@ class EventType:
     BARRIER_WAIT_FAILED = "barrier.wait.failed"
     BARRIER_ABORT = "barrier.abort"
     BARRIER_RESET = "barrier.reset"
+    # A shared value whose reads and writes are tracked (TracedCell).
+    CELL_CREATED = "cell.created"
+    CELL_READ = "cell.read"
+    CELL_WRITE = "cell.write"
     # asyncio.TaskGroup
     TASKGROUP_CREATED = "taskgroup.created"
     TASKGROUP_TASK_ADDED = "taskgroup.task.added"

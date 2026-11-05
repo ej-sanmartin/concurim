@@ -13,6 +13,7 @@ from concurim.recorder.events import Event
 from concurim.recorder.events import EventType as E
 from concurim.replay import (
     rules_barrier,
+    rules_cells,
     rules_events,
     rules_exec,
     rules_queues,
@@ -139,3 +140,7 @@ for _kind in ("LOCK", "SEMAPHORE"):
         ("RELEASED", rules_sync._released),
     ):
         _RULES[getattr(E, f"{_kind}_{_name}")] = _rule
+_RULES[E.LOCK_RELEASE_FAILED] = rules_sync._release_failed
+_RULES[E.CELL_CREATED] = rules_cells._created
+_RULES[E.CELL_READ] = rules_cells._read
+_RULES[E.CELL_WRITE] = rules_cells._write

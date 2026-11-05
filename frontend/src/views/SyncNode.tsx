@@ -9,7 +9,7 @@ export type SyncNodeType = Node<Record<string, never>, "sync">;
 export const KIND_LABEL: Record<SyncKind, string> = {
   lock: "lock", rlock: "reentrant lock", semaphore: "semaphore",
   event: "event", condition: "condition", barrier: "barrier",
-  taskgroup: "task group",
+  taskgroup: "task group", cell: "shared value",
 };
 
 interface Summary {
@@ -43,6 +43,10 @@ export function summarize(
       busy: waiting > 0,
     };
   }
+  if (kind === "cell") {
+    const value = state?.preview;
+    return { text: value != null ? `value ${value}` : "value not shown", busy: false };
+  }
   if (kind === "taskgroup") {
     const total = state?.members.length ?? 0;
     const running = state?.running ?? 0;
@@ -63,9 +67,9 @@ export function summarize(
 }
 
 /**
- * A lock, semaphore, event, condition, barrier or task group: its state,
- * and who is waiting for it. Conditions link to their lock through the
- * side handles.
+ * A lock, semaphore, event, condition, barrier, task group or shared value:
+ * its state, and who is waiting for it. Conditions link to their lock
+ * through the side handles.
  */
 export function SyncNode({ id }: NodeProps<SyncNodeType>) {
   const { world, replay, event, selection } = useFlow();

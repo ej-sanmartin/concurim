@@ -118,6 +118,11 @@ class Browser:
             "--hide-scrollbars",
             "--force-device-scale-factor=1",
             "--font-render-hinting=none",
+            # GPU and LCD raster differ across Chrome launches on macOS.
+            "--disable-gpu",
+            "--disable-lcd-text",
+            "--disable-font-subpixel-positioning",
+            "--force-color-profile=srgb",
             "--disable-background-timer-throttling",
             "--disable-renderer-backgrounding",
             "--disable-backgrounding-occluded-windows",

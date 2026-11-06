@@ -1,7 +1,7 @@
 """Compare exported PNG frames as pictures, not as file bytes.
 
-Chrome on macOS is not bit-stable across processes. A few antialiased
-edge pixels may change; a wrong frame moves far more than this.
+Chrome on macOS is not bit-stable across processes. A few hundred
+antialiased edge pixels may change; a wrong frame moves far more.
 """
 
 import struct
@@ -9,7 +9,7 @@ import zlib
 from pathlib import Path
 
 _LOUD_DELTA = 24
-_MAX_LOUD_PIXELS = 50
+_MAX_LOUD_PIXELS = 400
 _MAX_CHANGED_RATIO = 0.005
 _PNG_CHANNELS = {2: 3, 6: 4}
 

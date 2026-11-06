@@ -115,8 +115,8 @@ def _browser_or_skip():
 def test_png_frames_are_identical_between_runs(tmp_path):
     """The same trace renders the same picture on two runs.
 
-    PNG bytes are not compared: macOS Chrome antialiases a few edge
-    pixels differently each launch. A wrong frame still fails.
+    PNG bytes are not compared: macOS Chrome antialiases edge pixels
+    differently each launch. A wrong frame still fails.
     """
     _browser_or_skip()
     trace = load_trace(TRACE)

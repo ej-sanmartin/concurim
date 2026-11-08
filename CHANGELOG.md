@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 - `RLock`: the replay says who owns it and how deep, names a re-entry, and
   shows a release by a non-owner as refused.

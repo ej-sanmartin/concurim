@@ -16,7 +16,7 @@ The [README](../README.md) is the tour. These pages are the short guide.
 | [Trace format](trace-format.md) | The `.concurim` zip, for anyone building on the file |
 | [Security](../SECURITY.md) | Local viewer, no telemetry, what a trace can contain |
 | [Contributing](../CONTRIBUTING.md) | Tests, style, and how a version tag is published |
-| [Changelog](../CHANGELOG.md) | What 1.0.0 contains |
+| [Changelog](../CHANGELOG.md) | What each release contains |
 
 Video captions, a live picture that keeps updating, and a single HTML
 file you can send someone are listed in [limitations](limitations.md)

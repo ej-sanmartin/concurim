@@ -3,7 +3,7 @@
   <br>
   <a href="https://github.com/ej-sanmartin/concurim/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/ej-sanmartin/concurim/actions/workflows/ci.yml/badge.svg?branch=main"></a>
   <a href="https://pypi.org/project/concurim/"><img alt="PyPI" src="https://img.shields.io/pypi/v/concurim?color=blue"></a>
-  <a href="https://github.com/ej-sanmartin/concurim/blob/main/CHANGELOG.md"><img alt="Version 1.0.0" src="https://img.shields.io/badge/version-1.0.0-blue"></a>
+  <a href="https://github.com/ej-sanmartin/concurim/blob/main/CHANGELOG.md"><img alt="Version 1.1.0" src="https://img.shields.io/badge/version-1.1.0-blue"></a>
   <a href="https://github.com/ej-sanmartin/concurim/blob/main/LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="Python 3.13+" src="https://img.shields.io/badge/python-3.13%2B-blue">
 </p>
@@ -104,7 +104,7 @@ there with `uv add --dev concurim` and use `uv run`.
 | [Trace format][doc-trace] | The `.concurim` file |
 | [Security][doc-security] | Local only. Review a trace before sharing it |
 | [Contributing][doc-contributing] | Tests, style, publishing |
-| [Changelog][doc-changelog] | What 1.0.0 contains |
+| [Changelog][doc-changelog] | What each release contains |
 
 The viewer binds `127.0.0.1` and has no telemetry. Source and payload
 previews are off unless you ask for them.

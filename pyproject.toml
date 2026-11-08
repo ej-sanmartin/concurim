@@ -2,7 +2,7 @@
 name = "concurim"
 # Published by the v<version> tag. Keep this equal to __version__
 # in src/concurim/__init__.py.
-version = "1.0.0"
+version = "1.1.0"
 description = "See how Python runs together: record and replay concurrent execution."
 readme = "README.md"
 license = "MIT"

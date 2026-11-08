@@ -216,13 +216,23 @@ class Hazards:
         )
         return [(("loop_blocked", s.id, th.id), "loop_blocked", text, False)]
 
+    def _held_here(self, red: Any, actor: str) -> bool:
+        """Whether ``actor`` lives in the process that is about to fork.
+
+        Another process keeps its hold. Fork copies only this process,
+        so that hold is not left taken with nobody left to free it.
+        """
+        holder = red.threads.get(actor)
+        return holder is None or holder.kind != "process"
+
     def _fork_with_lock(
         self, red: Any, ev: Event, labels: Labels
     ) -> list[Found]:
-        """A child started by ``fork`` inherits locks other threads hold.
+        """A child started by ``fork`` inherits locks other threads here hold.
 
-        Covers ``Process`` (``start.requested``) and the workers of a
-        ``Pool`` (``executor.created``, which follows their creation).
+        A lock held by another process is shared, or is that process's
+        own copy. Covers ``Process`` (``start.requested``) and the
+        workers of a ``Pool`` (``executor.created``).
         """
         meta = ev.metadata
         if meta.get("start_method") != "fork":
@@ -243,7 +253,9 @@ class Hazards:
             others = [
                 h
                 for h in dict.fromkeys(s.holders)
-                if h != ev.actor and not ended(red, h)
+                if h != ev.actor
+                and not ended(red, h)
+                and self._held_here(red, h)
             ]
             if not others:
                 continue

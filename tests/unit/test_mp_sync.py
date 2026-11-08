@@ -55,6 +55,29 @@ def test_one_lock_shows_every_process_that_takes_it(rec):
     assert r["warnings"] == [] and r["hazards"] == []
 
 
+def test_a_lock_held_by_one_process_does_not_poison_the_next_fork(rec):
+    concurim.TracedMPLock(name="Door")
+    created = next(
+        e for e in rec.events() if e.event_type == E.LOCK_CREATED
+    )
+    child = rec.remote_actor("child", "child-1", 1)
+    rec.emit_as(
+        child,
+        E.LOCK_ACQUIRE_COMPLETED,
+        resource_id=created.resource_id,
+    )
+    rec.emit(
+        E.THREAD_START_REQUESTED,
+        metadata={
+            "child_name": "child-2",
+            "process": True,
+            "start_method": "fork",
+        },
+    )
+    r = replay_of(rec)
+    assert r["warnings"] == [] and r["hazards"] == []
+
+
 def test_a_child_reports_the_line_that_took_the_lock(rec):
     lock = concurim.TracedMPLock(name="Door")
     run_children(

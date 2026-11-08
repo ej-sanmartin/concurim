@@ -75,14 +75,38 @@ class MPOp:
             report_event(event_type, self.rid, self.op, meta, self.where)
 
 
-class _MPHeld:
+class MPReporting:
+    """Knows which resource id this object's events go under.
+
+    In the recording process that is a fresh registration; in a worker it is
+    the id the parent pickled along, and events go through the pipe.
+    """
+
+    _cz_name: str | None = None
+    _cz_on = True
+    _cz_id: str | None = None  # resource id, known to every process
+
+    def _cz_rid(self, rec: Recorder) -> str:
+        """Register with ``rec`` (once) and return the resource id."""
+        raise NotImplementedError
+
+    def _cz_target(self) -> tuple[str, Recorder | None] | None:
+        """``(resource id, recorder or None)`` if events should be made."""
+        if not self._cz_on:
+            return None
+        rec = active_recorder()
+        if rec is not None:
+            return self._cz_rid(rec), rec
+        if self._cz_id is not None and reporting():
+            return self._cz_id, None
+        return None
+
+
+class _MPHeld(MPReporting):
     """Shared plumbing for the four primitives (mixed in before the base)."""
 
     _cz_kind = "lock"  # event prefix: lock | semaphore
-    _cz_name: str | None = None
     _cz_meta: dict[str, Any]
-    _cz_on = True
-    _cz_id: str | None = None  # resource id, known to every process
     _semlock: Any  # set by the real SemLock this is mixed in before
 
     def _cz_setup(self, name: str | None, **meta: Any) -> None:
@@ -96,17 +120,6 @@ class _MPHeld:
         rid = rec.resource_id(self, self._cz_kind, self._cz_name, self._cz_meta)
         self._cz_id = rid
         return rid
-
-    def _cz_target(self) -> tuple[str, Recorder | None] | None:
-        """``(resource id, recorder or None)`` if events should be made."""
-        if not self._cz_on:
-            return None
-        rec = active_recorder()
-        if rec is not None:
-            return self._cz_rid(rec), rec
-        if self._cz_id is not None and reporting():
-            return self._cz_id, None
-        return None
 
     def _make_methods(self) -> None:
         super()._make_methods()  # ty: ignore[unresolved-attribute]

@@ -156,3 +156,105 @@ def test_reading_while_a_worker_still_writes_is_a_race(rec):
     leave.set()
     t.join(TIMEOUT)
     assert len(found) == 1
+
+
+def _hand_off(rec, send, take):
+    """Run two threads: ``send`` first, then ``take``, ordered by the pair."""
+    cell = concurim.TracedCell(0, name="count")
+    run_threads(lambda: send(cell), lambda: take(cell))
+    return races(replay_of(rec))
+
+
+def test_a_value_passed_through_a_queue_is_not_a_race(rec):
+    q = concurim.TracedQueue(name="Q")
+
+    def send(cell):
+        cell.value = 1  # no lock: the queue hands the value over
+        q.put("ready")
+
+    def take(cell):
+        q.get()
+        cell.value += 1
+
+    assert _hand_off(rec, send, take) == []
+
+
+def test_the_same_writes_with_no_hand_off_are_a_race(rec):
+    gate = threading.Barrier(2)  # plain: Concurim does not see a barrier
+
+    def send(cell):
+        cell.value = 1
+        gate.wait(TIMEOUT)
+
+    def take(cell):
+        gate.wait(TIMEOUT)
+        cell.value += 1
+
+    assert len(_hand_off(rec, send, take)) == 1
+
+
+def test_a_value_passed_through_an_event_is_not_a_race(rec):
+    ready = concurim.TracedEvent(name="ready")
+
+    def send(cell):
+        cell.value = 1
+        ready.set()
+
+    def take(cell):
+        assert ready.wait(TIMEOUT)
+        cell.value += 1
+
+    assert _hand_off(rec, send, take) == []
+
+
+def test_a_value_passed_through_a_lock_is_not_a_race(rec):
+    lock = concurim.TracedLock(name="L")
+    done = threading.Event()  # plain: forces the order, adds no edge
+
+    def send(cell):
+        cell.value = 1
+        with lock:
+            pass
+        done.set()
+
+    def take(cell):
+        assert done.wait(TIMEOUT)
+        with lock:
+            pass  # taking the lock after the writer released it
+        cell.value += 1  # but not holding it here
+
+    assert _hand_off(rec, send, take) == []
+
+
+def test_a_thread_starts_knowing_what_its_parent_wrote(rec):
+    cell = concurim.TracedCell(0, name="count")
+    cell.value = 10  # no lock, before the thread exists
+
+    def child():
+        cell.value += 1  # no lock either
+
+    run_threads(child)
+    assert races(replay_of(rec)) == []
+
+
+def test_a_third_actor_with_no_hand_off_is_still_a_race(rec):
+    q = concurim.TracedQueue(name="Q")
+    gate = threading.Barrier(3)  # keeps all three alive together
+
+    def send(cell):
+        cell.value = 1
+        q.put("ready")
+        gate.wait(TIMEOUT)
+
+    def take(cell):
+        q.get()
+        cell.value += 1
+        gate.wait(TIMEOUT)
+
+    def stray(cell):
+        gate.wait(TIMEOUT)
+        cell.value = 99
+
+    cell = concurim.TracedCell(0, name="count")
+    run_threads(lambda: send(cell), lambda: take(cell), lambda: stray(cell))
+    assert len(races(replay_of(rec))) == 1

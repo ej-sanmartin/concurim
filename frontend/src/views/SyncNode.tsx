@@ -44,8 +44,13 @@ export function summarize(
     };
   }
   if (kind === "cell") {
-    const value = state?.preview;
-    return { text: value != null ? `value ${value}` : "value not shown", busy: false };
+    const value = state?.preview != null ? `value ${state.preview}` : "value not shown";
+    const seen = state?.accesses ?? [];
+    const last = seen[seen.length - 1];
+    const by = last
+      ? ` · last ${last.op} by ${nameOf(replay, last.actor)}${last.locks.length ? "" : ", no lock"}`
+      : "";
+    return { text: value + by, busy: false };
   }
   if (kind === "taskgroup") {
     const total = state?.members.length ?? 0;

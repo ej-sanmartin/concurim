@@ -212,7 +212,7 @@ export function Viewer({
               onFocus={(id) => setSelection({ kind: "object", id })}
               onSeek={pb.seek} />}
             {tab === "log" && <EventLog replay={replay} index={pb.index} onSeek={pb.seek} />}
-            {tab === "info" && <TraceInfo replay={replay} />}
+            {tab === "info" && <TraceInfo replay={replay} onSeek={pb.seek} />}
           </div>
           </>}
         </aside>

@@ -12,8 +12,16 @@
   `multiprocessing.Value` record every read and write, the value when
   previews are on, and the locks held. A lockset check flags a value used
   with no lock in common, labelled inferred.
-- `multiprocessing` `Lock`, `RLock`, `Semaphore` and `BoundedSemaphore`
-  are recorded in every process that uses them.
+- `multiprocessing` `Lock`, `RLock`, `Semaphore`, `BoundedSemaphore`,
+  `Event` and `Barrier` are recorded in every process that uses them.
+  `fork` with a held lock is now also reported for a `Pool`.
+- The race check follows hand-offs in the trace (start, queue item, event,
+  condition, lock, submitted task), so a value passed along is no longer
+  reported as shared.
+- The Info tab lists fail states in two groups (found in this run, inferred
+  patterns), each with a button that jumps to its event. A shared-value
+  node shows the last access.
+- Examples `rlock` and `process-race`; `process-share` is re-recorded.
 - The README shows a looping animation of the components.
 
 ## 1.0.0

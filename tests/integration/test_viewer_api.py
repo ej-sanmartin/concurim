@@ -46,6 +46,10 @@ def test_every_bundled_sample_opens_and_replays_cleanly(client, sample):
         cycle, order = replay["warnings"]
         assert "one another holds" in cycle and "cleared" in cycle
         assert "opposite order" in order
+    elif sample.get("expects_hazard"):
+        kinds = [h["kind"] for h in replay["hazards"]]
+        assert kinds == [sample["expects_hazard"]]
+        assert replay["hazards"][0]["inferred"] is True
     else:
         assert replay["warnings"] == []
     assert replay["summary"]["event_count"] > 10

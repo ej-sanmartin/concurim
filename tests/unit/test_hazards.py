@@ -3,6 +3,7 @@
 import asyncio
 import queue
 import threading
+from types import SimpleNamespace
 
 import pytest
 
@@ -248,6 +249,32 @@ def test_fork_while_another_thread_holds_a_lock_is_flagged(rec):
     found = [h for h in r["hazards"] if h["kind"] == "fork_lock"]
     assert len(found) == 1 and "child-fork" in found[0]["text"]
     assert "keeper" in found[0]["text"]
+    leave.set()
+    t.join(TIMEOUT)
+
+
+def test_fork_pool_while_another_thread_holds_a_lock_is_flagged(rec):
+    lock = concurim.TracedLock(name="Db")
+    held, leave = threading.Event(), threading.Event()
+
+    def holder():
+        with lock:
+            held.set()
+            leave.wait(TIMEOUT)
+
+    t = concurim.TracedThread(target=holder, name="keeper")
+    t.start()
+    held.wait(TIMEOUT)
+    for method in ("fork", "spawn"):
+        rec.resource_id(  # emits executor.created
+            SimpleNamespace(),
+            "executor",
+            f"Pool-{method}",
+            {"pool": "process", "start_method": method},
+        )
+    found = [h for h in replay_of(rec)["hazards"] if h["kind"] == "fork_lock"]
+    assert len(found) == 1
+    assert "workers of Pool-fork are started by fork" in found[0]["text"]
     leave.set()
     t.join(TIMEOUT)
 

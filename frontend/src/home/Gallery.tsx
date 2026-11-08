@@ -39,7 +39,7 @@ const GROUPS: { id: string; title: string; ids: string[] }[] = [
     id: "locks",
     title: "Locks and events",
     ids: [
-      "lock-contention", "lock-order", "semaphore", "event-gate",
+      "lock-contention", "lock-order", "rlock", "semaphore", "event-gate",
       "barrier", "condition-mailbox",
     ],
   },
@@ -48,7 +48,7 @@ const GROUPS: { id: string; title: string; ids: string[] }[] = [
     title: "Pools and processes",
     ids: [
       "thread-pool", "cpu-threads", "future-control", "process-pool",
-      "process-pool-map", "process-share",
+      "process-pool-map", "process-share", "process-race",
     ],
   },
   {

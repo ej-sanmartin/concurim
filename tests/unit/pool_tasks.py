@@ -77,3 +77,18 @@ def bump_together(counter, barrier):
     """Add one with no lock, then wait so both children overlap."""
     counter.value += 1
     barrier.wait()
+
+
+def wait_for_event(event):
+    """Block until the event is set (or fail after a generous timeout)."""
+    assert event.wait(30)
+
+
+def set_event(event):
+    """Set the event."""
+    event.set()
+
+
+def meet(barrier):
+    """Arrive at the barrier and wait for the other party."""
+    barrier.wait(30)

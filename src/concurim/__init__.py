@@ -23,6 +23,7 @@ from concurim.instrumentation.cells import TracedCell
 from concurim.instrumentation.executors import TracedThreadPoolExecutor
 from concurim.instrumentation.mp_pool import TracedPool
 from concurim.instrumentation.mp_process import TracedProcess
+from concurim.instrumentation.mp_signals import TracedMPBarrier, TracedMPEvent
 from concurim.instrumentation.mp_sync import (
     TracedMPBoundedSemaphore,
     TracedMPLock,
@@ -64,7 +65,9 @@ __all__ = [
     "TracedCondition",
     "TracedEvent",
     "TracedLock",
+    "TracedMPBarrier",
     "TracedMPBoundedSemaphore",
+    "TracedMPEvent",
     "TracedMPLock",
     "TracedMPRLock",
     "TracedMPSemaphore",

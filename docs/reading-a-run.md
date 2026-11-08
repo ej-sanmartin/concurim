@@ -30,6 +30,11 @@ thread lock, a lock copied by `fork`, a wait nobody is left to end, and a
 value used with no lock in common. Those marked inferred are patterns, not
 blocks that happened.
 
+The **Info** tab (the warning chip opens it) lists them in two groups:
+those found in this run, and inferred patterns. Each has an **event**
+button that jumps to where it showed up. Open the `rlock` and
+`process-race` examples to see a re-entry and an unprotected value.
+
 | Key | Action |
 | --- | --- |
 | Space | Play or pause |

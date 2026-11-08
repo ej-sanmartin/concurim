@@ -37,7 +37,12 @@ def record(entry: dict) -> None:
     )
     trace = load_trace(out)
     replay = build_replay(trace)
-    assert not replay["warnings"], (entry["id"], replay["warnings"])
+    want = entry.get("expects_hazard")  # a sample that shows one on purpose
+    if want:
+        kinds = [h["kind"] for h in replay["hazards"]]
+        assert want in kinds, (entry["id"], kinds)
+    else:
+        assert not replay["warnings"], (entry["id"], replay["warnings"])
     blob = str(trace.metadata)
     assert str(SAMPLES_DIR) not in blob, "absolute path leaked into a sample"
     count = len(trace.events)

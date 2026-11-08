@@ -214,3 +214,64 @@ def test_auto_sync_leaves_the_classes_so_plain_locks_still_pickle():
         cls = multiprocessing.synchronize.Lock
         assert cls.__module__ == "multiprocessing.synchronize"
         assert pickle.dumps(cls)
+
+
+def _by(rec, event_type):
+    """Actors that emitted ``event_type``, in order, without repeats."""
+    return list(
+        dict.fromkeys(
+            e.thread_id for e in rec.events() if e.event_type == event_type
+        )
+    )
+
+
+def test_an_event_set_in_one_process_wakes_a_wait_in_another(rec):
+    ready = concurim.TracedMPEvent(name="ready")
+    run_children(
+        (pool_tasks.wait_for_event, (ready,)),
+        (pool_tasks.set_event, (ready,)),
+    )
+    (setter,) = _by(rec, E.EVENT_SET)
+    (waiter,) = _by(rec, E.EVENT_WAIT_COMPLETED)
+    assert setter != waiter
+    r = replay_of(rec)
+    assert r["warnings"] == [] and r["hazards"] == []
+    state = world_after(r)["syncs"]["event-1"]
+    assert state["kind"] == "event" and state["is_set"] is True
+
+
+def test_a_barrier_shows_each_process_that_arrives(rec):
+    gate = concurim.TracedMPBarrier(2, name="gate")
+    run_children(*[(pool_tasks.meet, (gate,))] * 2)
+    assert len(_by(rec, E.BARRIER_WAIT_COMPLETED)) == 2
+    assert E.BARRIER_WAIT_BLOCKED in types(rec.events())
+    r = replay_of(rec)
+    assert r["warnings"] == []
+    assert r["entities"]["syncs"]["barrier-1"]["capacity"] == 2
+
+
+def test_plain_event_and_barrier_behave_the_same_without_recording():
+    event = concurim.TracedMPEvent()
+    assert not event.is_set() and event.wait(0.01) is False
+    event.set()
+    assert event.is_set() and event.wait(0.01) is True
+    event.clear()
+    assert not event.is_set()
+    gate = concurim.TracedMPBarrier(1)
+    assert gate.wait(1) == 0 and gate.parties == 1
+
+
+def test_auto_sync_traces_events_and_barriers_made_by_user_code():
+    with record(auto="sync") as rec:
+        event = multiprocessing.Event()
+        gate = multiprocessing.Barrier(1)
+        event.set()
+        gate.wait()
+        multiprocessing.Queue().close()  # its internals stay plain
+    created = [
+        e.metadata["name"]
+        for e in rec.events()
+        if e.event_type in (E.EVENT_CREATED, E.BARRIER_CREATED)
+    ]
+    assert len(created) == 2 and all("(line " in n for n in created)
+    assert len(_by(rec, E.EVENT_SET)) == 1

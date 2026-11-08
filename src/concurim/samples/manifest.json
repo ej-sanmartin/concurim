@@ -109,6 +109,20 @@
       "auto": "sync"
     },
     {
+      "id": "rlock",
+      "title": "Reentrant lock",
+      "observability": "sync",
+      "summary": "One thread takes the same RLock twice; the other waits until it is completely out.",
+      "watch": [
+        "The holder is shown two deep (x2) while it is inside the inner call",
+        "Releasing once leaves it holding; only the second release frees the lock",
+        "The second thread waits for the whole batch, not just the inner call"
+      ],
+      "source": "rlock_reentry.py",
+      "trace": "rlock.concurim",
+      "auto": "sync"
+    },
+    {
       "id": "semaphore",
       "title": "Semaphore limit",
       "observability": "sync",
@@ -239,6 +253,22 @@
       "source": "process_share.py",
       "trace": "process-share.concurim",
       "auto": "sync"
+    },
+    {
+      "id": "process-race",
+      "title": "Process: shared counter, no lock",
+      "observability": "sync",
+      "summary": "Two child processes add to a shared counter that has no lock around it.",
+      "watch": [
+        "Each read and write of the counter shows the locks held: none",
+        "The warning says no lock is common to both writers, and that this is inferred",
+        "In the bundled recording the last read sees 3 although six increments ran: updates were lost"
+      ],
+      "source": "process_race.py",
+      "trace": "process-race.concurim",
+      "auto": "sync",
+      "preview": true,
+      "expects_hazard": "unprotected_value"
     },
     {
       "id": "asyncio-tasks",

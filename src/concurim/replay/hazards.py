@@ -17,6 +17,7 @@ from typing import Any
 from concurim.recorder.events import Event
 from concurim.recorder.events import EventType as E
 from concurim.replay.hazards_cells import CellRaces
+from concurim.replay.hazards_order import Order
 from concurim.replay.hazards_signals import Signals
 from concurim.replay.hazards_util import (
     Found,
@@ -61,6 +62,7 @@ class Hazards:
         self._timed: set[str] = set()  # ops that cannot wait forever
         self._signals = Signals()
         self._cells = CellRaces()
+        self._clocks = Order()
 
     def observe(self, red: Any, ev: Event, i: int) -> list[dict[str, Any]]:
         """Hazards event ``i`` reveals (new ones only)."""
@@ -73,6 +75,7 @@ class Hazards:
         if t.endswith(".created") and ev.metadata.get("asyncio"):
             self._async.add(ev.resource_id or "")
         self._signals.note(ev)
+        self._clocks.observe(red, ev)
         before = len(self.found)
         names = None  # computed only when a hazard needs it
 
@@ -92,10 +95,10 @@ class Hazards:
             E.SEMAPHORE_ACQUIRE_BLOCKED,
         ):
             found += self._holder_gone(red, labels)
-        if t == E.THREAD_START_REQUESTED:
+        if t in (E.THREAD_START_REQUESTED, E.EXECUTOR_CREATED):
             found += self._fork_with_lock(red, ev, labels)
         if t in (E.CELL_READ, E.CELL_WRITE):
-            found += self._cells.access(red, ev, i, labels)
+            found += self._cells.access(red, ev, i, labels, self._clocks)
         self._add(found, i)
         return self.found[before:]
 
@@ -216,10 +219,22 @@ class Hazards:
     def _fork_with_lock(
         self, red: Any, ev: Event, labels: Labels
     ) -> list[Found]:
-        """A child started by ``fork`` inherits locks other threads hold."""
-        if not ev.metadata.get("process") or ev.metadata.get(
-            "start_method"
-        ) != ("fork"):
+        """A child started by ``fork`` inherits locks other threads hold.
+
+        Covers ``Process`` (``start.requested``) and the workers of a
+        ``Pool`` (``executor.created``, which follows their creation).
+        """
+        meta = ev.metadata
+        if meta.get("start_method") != "fork":
+            return []
+        if meta.get("process"):
+            child = str(meta.get("child_name", "A child process"))
+            start = f"{child} is started"
+        elif meta.get("pool") == "process":
+            pool = red.queues.get(ev.resource_id or "")
+            child = f"The workers of {pool.name if pool else 'a process pool'}"
+            start = f"{child} are started"
+        else:
             return []
         out = []
         for s in red.syncs.values():
@@ -233,10 +248,9 @@ class Hazards:
             if not others:
                 continue
             names = labels()
-            child = ev.metadata.get("child_name", "A child process")
             text = (
-                f"{child} is started by fork while {s.name} is held by "
-                f"{join_names([names.get(h, h) for h in others])}. The "
+                f"{start} by fork while {s.name} is held by "
+                f"{join_names([names.get(h, h) for h in others])}. Each "
                 f"child gets its own copy of {s.name}, still taken, and the "
                 "holder does not exist there, so a child that takes it "
                 "waits forever. Start with spawn or forkserver, or release "

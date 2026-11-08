@@ -101,7 +101,11 @@ class TracedPool(_BasePool):
             self,
             "executor",
             self._cz_name,
-            {"max_workers": self._processes, "pool": "process"},  # ty: ignore[unresolved-attribute]
+            {
+                "max_workers": self._processes,  # ty: ignore[unresolved-attribute]
+                "pool": "process",
+                "start_method": self._ctx.get_start_method(),  # ty: ignore[unresolved-attribute]
+            },
         )
 
     def _cz_submit(

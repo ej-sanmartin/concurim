@@ -48,11 +48,13 @@ def _blocked(n, ev, f):
         why = "no permits were available"
     else:
         why = "it was already held"
+    # Another process's events can arrive after this one, so the holder
+    # may be unknown here even though the call did find the lock taken.
+    count = f"{len(holders)} holder(s)" if holders else "holder not seen yet"
     return (
         "Acquire blocked",
-        f"{n.t} tried to acquire {n.q}, but {why} "
-        f"({len(holders)} holder(s)). It waits; other threads keep "
-        "running.",
+        f"{n.t} tried to acquire {n.q}, but {why} ({count}). It waits; "
+        "other threads keep running.",
         "wait",
     )
 

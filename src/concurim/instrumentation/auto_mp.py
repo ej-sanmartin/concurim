@@ -19,6 +19,7 @@ from typing import Any
 from concurim.instrumentation.auto_support import creation_name, user_caller
 from concurim.instrumentation.mp_pool import TracedPool
 from concurim.instrumentation.mp_process import TracedProcess
+from concurim.instrumentation.mp_signals import TracedMPBarrier, TracedMPEvent
 from concurim.instrumentation.mp_sync import (
     TracedMPBoundedSemaphore,
     TracedMPLock,
@@ -36,6 +37,8 @@ _TRACED_SYNC = {
     "RLock": TracedMPRLock,
     "Semaphore": TracedMPSemaphore,
     "BoundedSemaphore": TracedMPBoundedSemaphore,
+    "Event": TracedMPEvent,
+    "Barrier": TracedMPBarrier,
 }
 
 
@@ -91,7 +94,9 @@ def _value_method() -> Callable[..., Any]:
 
 
 def mp_primitive_patches() -> list[tuple[Any, str, Any]]:
-    """``(owner, attribute, replacement)`` for locks, semaphores, ``Value``.
+    """``(owner, attribute, replacement)`` for the shared primitives.
+
+    Locks, semaphores, events, barriers and ``Value``.
 
     Each is patched on ``BaseContext`` (for ``get_context(...)``) and on the
     ``multiprocessing`` module, whose ``Lock`` and friends are methods of the
